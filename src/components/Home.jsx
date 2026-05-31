@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS } from '../config/navigation';
+import { TRACK_CONFIGS } from '../config/navigation';
 import { useProgress } from '../context/ProgressContext';
 import './Home.css';
 
@@ -65,6 +65,16 @@ const LockIcon = () => (
   </svg>
 );
 
+// Registry of track icon components
+const ICONS = {
+  HldIcon: <HldIcon />,
+  JavaIcon: <JavaIcon />,
+  LldIcon: <LldIcon />,
+  DsaIcon: <DsaIcon />,
+  DbIcon: <DbIcon />,
+  BehavioralIcon: <BehavioralIcon />
+};
+
 // High-fidelity custom progress ring component
 const ProgressRing = ({ completed, total, colorClass }) => {
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -106,17 +116,17 @@ export default function Home() {
   const { completedArticles } = useProgress();
 
   const getTrackStats = (sections) => {
-    const total = sections.reduce((acc, sec) => 
+    const total = sections.reduce((acc, sec) => acc + sec.items.length, 0);
+    const unlocked = sections.reduce((acc, sec) => 
       acc + sec.items.filter(item => item.status !== 'locked').length
     , 0);
     const completed = sections.reduce((acc, sec) => 
       acc + sec.items.filter(item => item.status !== 'locked' && completedArticles.includes(item.id)).length
     , 0);
-    return { completed, total };
+    return { completed, unlocked, total };
   };
 
-  const hldStats = getTrackStats(SYSTEM_DESIGN_SECTIONS);
-  const javaStats = getTrackStats(JAVA_SECTIONS);
+  const hldStats = getTrackStats(TRACK_CONFIGS['system-design']?.sections || []);
 
   return (
     <div className="home-dashboard-wrapper">
@@ -140,78 +150,38 @@ export default function Home() {
         <div className="home-tracks-section">
           <div className="tracks-grid">
             
-            {/* System Design (HLD) Card */}
-            <div className="track-card track-card--active" onClick={() => navigate('/networking')}>
-              {/* Modern Tech Corners */}
-              <div className="card-corner card-corner--top-left"></div>
-              <div className="card-corner card-corner--bottom-right"></div>
+            {Object.entries(TRACK_CONFIGS).map(([trackId, config]) => {
+               const stats = getTrackStats(config.sections);
+               const ringColorClass = (trackId === 'java' || trackId === 'java-lang') ? 'java-ring' : trackId === 'lld' ? 'lld-ring' : 'hld-ring';
+               const iconThemeClass = (trackId === 'java' || trackId === 'java-lang') ? 'java-theme' : trackId === 'lld' ? 'lld-theme' : 'hld-theme';
+               const cardClass = (trackId === 'java' || trackId === 'java-lang') ? 'java-card' : trackId === 'lld' ? 'lld-card' : 'hld-card';
+               const firstItem = config.sections[0]?.items[0];
+               const firstItemPath = firstItem ? firstItem.href : '/';
 
-              <div className="track-card-header">
-                <div className="track-icon hld-theme">
-                  <HldIcon />
-                </div>
-                <ProgressRing completed={hldStats.completed} total={hldStats.total} colorClass="hld-ring" />
-              </div>
-              <h3 className="track-title">System Design (HLD)</h3>
-              <p className="track-desc">
-                Master distributed systems, networking layers, caching policies, database sharding, and write contention.
-              </p>
-              <div className="track-footer">
-                <span className="track-stats-pill">
-                  {hldStats.total} Modules Unlocked
-                </span>
-                <span className="track-link">
-                  Explore <span className="arrow">→</span>
-                </span>
-              </div>
-            </div>
+               return (
+                 <div key={trackId} className={`track-card track-card--active ${cardClass}`} onClick={() => navigate(firstItemPath)}>
+                   <div className="card-corner card-corner--top-left"></div>
+                   <div className="card-corner card-corner--bottom-right"></div>
 
-            {/* Java Deep Dive Card */}
-            <div className="track-card track-card--active" onClick={() => navigate('/java-map')}>
-              {/* Modern Tech Corners */}
-              <div className="card-corner card-corner--top-left"></div>
-              <div className="card-corner card-corner--bottom-right"></div>
-
-              <div className="track-card-header">
-                <div className="track-icon java-theme">
-                  <JavaIcon />
-                </div>
-                <ProgressRing completed={javaStats.completed} total={javaStats.total} colorClass="java-ring" />
-              </div>
-              <h3 className="track-title">Java Deep Dive</h3>
-              <p className="track-desc">
-                Master collections, concurrent locks, JVM memory areas, GC execution, and Virtual Threads.
-              </p>
-              <div className="track-footer">
-                <span className="track-stats-pill">
-                  {javaStats.total} Modules Unlocked
-                </span>
-                <span className="track-link">
-                  Explore <span className="arrow">→</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Low-Level Design Card */}
-            <div className="track-card track-card--locked">
-              <div className="track-card-header">
-                <div className="track-icon locked-theme">
-                  <LldIcon />
-                </div>
-                <div className="lock-indicator">
-                  <LockIcon />
-                </div>
-              </div>
-              <h3 className="track-title">Low-Level Design (LLD)</h3>
-              <p className="track-desc">
-                Design clean object-oriented systems with SOLID design principles, UML patterns, and architectures.
-              </p>
-              <div className="track-footer">
-                <span className="track-stats-pill locked-pill">
-                  Coming Soon
-                </span>
-              </div>
-            </div>
+                   <div className="track-card-header">
+                     <div className={`track-icon ${iconThemeClass}`}>
+                       {ICONS[config.icon] || <HldIcon />}
+                     </div>
+                     <ProgressRing completed={stats.completed} total={stats.unlocked} colorClass={ringColorClass} />
+                   </div>
+                   <h3 className="track-title">{config.title}</h3>
+                   <p className="track-desc">{config.desc}</p>
+                   <div className="track-footer">
+                     <span className="track-stats-pill">
+                       {stats.unlocked}/{stats.total} Modules
+                     </span>
+                     <span className="track-link">
+                       Explore <span className="arrow">→</span>
+                     </span>
+                   </div>
+                 </div>
+               );
+             })}
 
             {/* DSA Card */}
             <div className="track-card track-card--locked">

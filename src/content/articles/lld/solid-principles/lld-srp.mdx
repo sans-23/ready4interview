@@ -1,0 +1,1066 @@
+import React from 'react';
+import CodeBlock from '../../../../components/ui/CodeBlock';
+import Callout from '../../../../components/ui/Callout';
+
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Curated Notes</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Single Responsibility Principle (SRP)</span>
+  </div>
+  <h1>Single Responsibility Principle (SRP)</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Master the essentials of Single Responsibility Principle (SRP) in this curated guide.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      10 min read
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<section className="content-section">
+
+**Have you ever changed one part of your code... and suddenly, five unrelated things broke?**
+
+Or added a small feature... and ended up editing dozens of lines across a single class?
+
+If yes, you’ve probably encountered a violation of one of the most important design principles in software engineering: **The Single Responsibility Principle (SRP).**
+
+Let's understand it by looking at a common problem and seeing exactly why it violates SRP.
+
+---
+
+## 1. The Problem: The God Class
+
+You have probably seen this kind of class before. Maybe you have even written one. It is called a **God Class** because it tries to do everything, and like most things that try to do everything, it does nothing particularly well.
+
+
+```java
+class UserService {
+    private String username;
+    private String email;
+    private String password;
+
+    // Constructor, getters, setters...
+
+    public String validateAndHashPassword() {
+        // Check password strength
+        // Generate salt
+        // Hash with bcrypt
+    }
+
+    public void saveToDatabase() {
+        // Connect to database
+        // Prepare SQL
+        // Execute query
+    }
+
+    public String generateAuthToken() {
+        // Create JWT payload
+        // Sign with secret key
+        // Return token string
+    }
+
+    public void sendWelcomeEmail() {
+        // Connect to email server
+        // Build welcome template
+        // Send email
+    }
+}
+```
+
+```python
+class UserService:
+    def __init__(self, username: str, email: str, password: str):
+        self._username = username
+        self._email = email
+        self._password = password
+
+    def validate_and_hash_password(self):
+        # Check password strength
+        # Generate salt
+        # Hash with bcrypt
+        pass
+
+    def save_to_database(self):
+        # Connect to database
+        # Prepare SQL
+        # Execute query
+        pass
+
+    def generate_auth_token(self):
+        # Create JWT payload
+        # Sign with secret key
+        # Return token string
+        pass
+
+    def send_welcome_email(self):
+        # Connect to email server
+        # Build welcome template
+        # Send email
+        pass
+```
+
+```cpp
+class UserService {
+private:
+    string username;
+    string email;
+    string password;
+
+public:
+    UserService(const string& username, const string& email, const string& password)
+        : username(username), email(email), password(password) {}
+
+    string validateAndHashPassword() {
+        // Check password strength
+        // Generate salt
+        // Hash with bcrypt
+    }
+
+    void saveToDatabase() {
+        // Connect to database
+        // Prepare SQL
+        // Execute query
+    }
+
+    string generateAuthToken() {
+        // Create JWT payload
+        // Sign with secret key
+        // Return token string
+    }
+
+    void sendWelcomeEmail() {
+        // Connect to email server
+        // Build welcome template
+        // Send email
+    }
+};
+```
+
+```csharp
+class UserService
+{
+    private string username;
+    private string email;
+    private string password;
+
+    public UserService(string username, string email, string password)
+    {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+
+    public string ValidateAndHashPassword()
+    {
+        // Check password strength
+        // Generate salt
+        // Hash with bcrypt
+    }
+
+    public void SaveToDatabase()
+    {
+        // Connect to database
+        // Prepare SQL
+        // Execute query
+    }
+
+    public string GenerateAuthToken()
+    {
+        // Create JWT payload
+        // Sign with secret key
+        // Return token string
+    }
+
+    public void SendWelcomeEmail()
+    {
+        // Connect to email server
+        // Build welcome template
+        // Send email
+    }
+}
+```
+
+```go
+type UserService struct {
+    username string
+    email    string
+    password string
+}
+
+func NewUserService(username, email, password string) *UserService {
+    return &UserService{username: username, email: email, password: password}
+}
+
+func (u *UserService) ValidateAndHashPassword() string {
+    // Check password strength
+    // Generate salt
+    // Hash with bcrypt
+}
+
+func (u *UserService) SaveToDatabase() {
+    // Connect to database
+    // Prepare SQL
+    // Execute query
+}
+
+func (u *UserService) GenerateAuthToken() string {
+    // Create JWT payload
+    // Sign with secret key
+    // Return token string
+}
+
+func (u *UserService) SendWelcomeEmail() {
+    // Connect to email server
+    // Build welcome template
+    // Send email
+}
+```
+
+```typescript
+class UserService {
+    private username: string;
+    private email: string;
+    private password: string;
+
+    // Constructor, getters, setters...
+
+    validateAndHashPassword(): string {
+        // Check password strength
+        // Generate salt
+        // Hash with bcrypt
+    }
+
+    saveToDatabase(): void {
+        // Connect to database
+        // Prepare SQL
+        // Execute query
+    }
+
+    generateAuthToken(): string {
+        // Create JWT payload
+        // Sign with secret key
+        // Return token string
+    }
+
+    sendWelcomeEmail(): void {
+        // Connect to email server
+        // Build welcome template
+        // Send email
+    }
+}
+```
+
+
+At first glance, this may seem convenient. Everything about user registration is in one place. But let's pause and examine what this class is actually doing:
+
+- Validating and hashing passwords
+- Saving data to the database
+- Generating authentication tokens
+- Sending a welcome email
+
+That’s **four distinct responsibilities** rolled into one class. And each one introduces a separate reason for the class to change:
+
+- If password hashing rules change (e.g., switching from bcrypt to argon2), this class changes.
+- If the auth token format changes (e.g., switching from JWT to opaque tokens), this class changes.
+- If the database schema changes, this class changes.
+- If the email service provider is replaced, this class changes again.
+
+This class is tightly coupled to **four different reasons to change**. That’s a red flag.
+
+---
+
+## 2. Enter: The Single Responsibility Principle
+
+&gt; **A class should have one, and only one, reason to change.**
+&gt;
+&gt;  — Robert C. Martin (Uncle Bob)
+
+In simple words: **A class should do one thing and do it well.**
+
+The Single Responsibility Principle (SRP) is the "S" in the famous SOLID principles of object-oriented design. It is the first principle for a good reason: it forms the foundation for writing maintainable, testable, and flexible code.
+
+***But what exactly is a "responsibility"?***
+
+It’s not a method. It’s not a function. It’s a reason for the class to change.
+
+Ask yourself this:
+
+&gt; **How many reasons might someone need to update this class in the future?**
+
+If the answer is more than one, the class is likely breaking SRP.
+
+
+&gt; **Real-World Analogy**
+&gt;
+&gt; Think of a **restaurant**. Would you hire one person to do all of these?
+&gt;
+&gt; - Cook the food
+&gt; - Take orders
+&gt; - Clean the tables
+&gt; - Do the accounts
+&gt;
+&gt; Of course not. You would hire a chef, a waiter, a cleaner, and an accountant. Each with a single responsibility. 
+&gt;
+&gt; Why should your code be any different?
+
+
+---
+
+## 3. Why Does SRP Matter?
+
+#### **Easier to read**
+
+You immediately understand what the class is supposed to do. No surprises, no scrolling through hundreds of lines to find the method you need.
+
+#### **Easier to test**
+
+Smaller responsibilities mean smaller test cases and fewer dependencies. You can test a password hasher without needing a database connection or an email server.
+
+#### **Less brittle**
+
+Changes in one responsibility don't ripple across unrelated parts of the code. Updating the email service does not risk breaking password hashing.
+
+#### **Easier to reuse**
+
+Small, focused classes are more flexible and can be reused in different contexts. An `AuthTokenService` can serve both a web application and a mobile API.
+
+#### **Scales better**
+
+Teams can own different parts of the system without stepping on each other's toes. The database team can modify `UserRepository` without worrying about breaking the email workflow.
+
+These benefits compound over time. A codebase that follows SRP from the start is far easier to extend six months later than one full of God Classes.
+
+---
+
+## 4. Applying SRP
+
+Time to fix our original `UserService` God Class using SRP. We will take each distinct responsibility from the original class and extract it into its own focused, well-named class.
+
+- Validating and hashing passwords is one responsibility.
+- Saving to the database is another.
+- Generating auth tokens is another.
+- Sending the welcome email is yet another.
+
+They all deserve their own classes. Let's walk through each one.
+
+#### The Core: User Class
+
+Let's start by extracting a simple `User` data class. Its only job is to represent a user.
+
+
+```java
+class User {
+    private String username;
+    private String email;
+    private String password;
+
+    public User(String username, String email, String password) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+
+    public String getUsername() { return username; }
+    public String getEmail() { return email; }
+    public String getPassword() { return password; }
+}
+```
+
+```python
+class User:
+    def __init__(self, username: str, email: str, password: str):
+        self._username = username
+        self._email = email
+        self._password = password
+
+    def get_username(self) -> str:
+        return self._username
+
+    def get_email(self) -> str:
+        return self._email
+
+    def get_password(self) -> str:
+        return self._password
+```
+
+```cpp
+class User {
+private:
+    string username;
+    string email;
+    string password;
+
+public:
+    User(const string& username, const string& email, const string& password)
+        : username(username), email(email), password(password) {}
+
+    string getUsername() const {
+        return username;
+    }
+
+    string getEmail() const {
+        return email;
+    }
+
+    string getPassword() const {
+        return password;
+    }
+};
+```
+
+```csharp
+class User
+{
+    private string username;
+    private string email;
+    private string password;
+
+    public User(string username, string email, string password)
+    {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+
+    public string GetUsername()
+    {
+        return username;
+    }
+
+    public string GetEmail()
+    {
+        return email;
+    }
+
+    public string GetPassword()
+    {
+        return password;
+    }
+}
+```
+
+```go
+type User struct {
+    username string
+    email    string
+    password string
+}
+
+func NewUser(username, email, password string) *User {
+    return &User{
+        username: username,
+        email:    email,
+        password: password,
+    }
+}
+
+func (u *User) GetUsername() string { return u.username }
+func (u *User) GetEmail() string   { return u.email }
+func (u *User) GetPassword() string { return u.password }
+```
+
+```typescript
+class User {
+    private username: string;
+    private email: string;
+    private password: string;
+
+    constructor(username: string, email: string, password: string) {
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+
+    getUsername(): string { return this.username; }
+    getEmail(): string { return this.email; }
+    getPassword(): string { return this.password; }
+}
+```
+
+
+This class now does one thing: represent a user. It does not hash passwords, store itself, or send emails. That is the job of others.
+
+#### Responsibility 1: Password Hashing
+
+This class handles just the logic of validating and hashing a password.
+
+
+```java
+class PasswordHasher {
+    public String validateAndHash(String password) {
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters");
+        }
+        // Generate salt and hash with bcrypt
+        return "bcrypt_hashed_" + password; // Simplified for illustration
+    }
+}
+```
+
+```python
+class PasswordHasher:
+    def validate_and_hash(self, password: str) -> str:
+        if len(password) < 8:
+            raise ValueError("Password must be at least 8 characters")
+        # Generate salt and hash with bcrypt
+        return "bcrypt_hashed_" + password  # Simplified for illustration
+```
+
+```cpp
+class PasswordHasher {
+public:
+    string validateAndHash(const string& password) {
+        if (password.length() < 8) {
+            throw invalid_argument("Password must be at least 8 characters");
+        }
+        // Generate salt and hash with bcrypt
+        return "bcrypt_hashed_" + password; // Simplified for illustration
+    }
+};
+```
+
+```csharp
+class PasswordHasher
+{
+    public string ValidateAndHash(string password)
+    {
+        if (password.Length < 8)
+        {
+            throw new ArgumentException("Password must be at least 8 characters");
+        }
+        // Generate salt and hash with bcrypt
+        return "bcrypt_hashed_" + password; // Simplified for illustration
+    }
+}
+```
+
+```go
+type PasswordHasher struct{}
+
+func (h *PasswordHasher) ValidateAndHash(password string) (string, error) {
+    if len(password) < 8 {
+        return "", fmt.Errorf("password must be at least 8 characters")
+    }
+    // Generate salt and hash with bcrypt
+    return "bcrypt_hashed_" + password, nil // Simplified for illustration
+}
+```
+
+```typescript
+class PasswordHasher {
+    validateAndHash(password: string): string {
+        if (password.length < 8) {
+            throw new Error("Password must be at least 8 characters");
+        }
+        // Generate salt and hash with bcrypt
+        return "bcrypt_hashed_" + password; // Simplified for illustration
+    }
+}
+```
+
+
+If the hashing algorithm changes (say, from bcrypt to argon2), we only update this class. Nothing else is affected.
+
+#### Responsibility 2: Persistence to Database
+
+The responsibility for talking to the database belongs here.
+
+
+```java
+class UserRepository {
+    public void save(User user) {
+        // Example: JDBC code or ORM logic
+        System.out.println("Saving user " + user.getUsername() + " to database...");
+    }
+}
+```
+
+```python
+class UserRepository:
+    def save(self, user: User):
+        print(f"Saving user {user.get_username()} to database...")
+```
+
+```cpp
+class UserRepository {
+public:
+    void save(const User& user) {
+        cout << "Saving user " << user.getUsername() << " to database..." << endl;
+    }
+};
+```
+
+```csharp
+class UserRepository
+{
+    public void Save(User user)
+    {
+        Console.WriteLine("Saving user " + user.GetUsername() + " to database...");
+    }
+}
+```
+
+```go
+type UserRepository struct{}
+
+func (r *UserRepository) Save(user *User) {
+    fmt.Printf("Saving user %s to database...\n", user.GetUsername())
+}
+```
+
+```typescript
+class UserRepository {
+    save(user: User): void {
+        // Example: database logic
+        console.log(`Saving user ${user.getUsername()} to database...`);
+    }
+}
+```
+
+
+You can swap out JDBC for JPA, switch from SQL to a NoSQL store, or change your ORM entirely without touching the rest of the system.
+
+#### Responsibility 3: Auth Token Generation
+
+This class handles the creation of authentication tokens.
+
+
+```java
+class AuthTokenService {
+    public String generateToken(User user) {
+        // Create JWT payload with user claims
+        String payload = "{\"username\":\"" + user.getUsername() + "\",\"email\":\"" + user.getEmail() + "\"}";
+        // Sign with secret key (simplified)
+        return "eyJhbGciOiJIUzI1NiJ9." + payload + ".signature";
+    }
+}
+```
+
+```python
+class AuthTokenService:
+    def generate_token(self, user: User) -> str:
+        # Create JWT payload with user claims
+        payload = f'{{"username":"{user.get_username()}","email":"{user.get_email()}"}}'
+        # Sign with secret key (simplified)
+        return f"eyJhbGciOiJIUzI1NiJ9.{payload}.signature"
+```
+
+```cpp
+class AuthTokenService {
+public:
+    string generateToken(const User& user) {
+        // Create JWT payload with user claims
+        string payload = "{\"username\":\"" + user.getUsername() + "\",\"email\":\"" + user.getEmail() + "\"}";
+        // Sign with secret key (simplified)
+        return "eyJhbGciOiJIUzI1NiJ9." + payload + ".signature";
+    }
+};
+```
+
+```csharp
+class AuthTokenService
+{
+    public string GenerateToken(User user)
+    {
+        // Create JWT payload with user claims
+        string payload = "{\"username\":\"" + user.GetUsername() + "\",\"email\":\"" + user.GetEmail() + "\"}";
+        // Sign with secret key (simplified)
+        return "eyJhbGciOiJIUzI1NiJ9." + payload + ".signature";
+    }
+}
+```
+
+```go
+type AuthTokenService struct{}
+
+func (a *AuthTokenService) GenerateToken(user *User) string {
+    // Create JWT payload with user claims
+    payload := fmt.Sprintf(`{"username":"%s","email":"%s"}`, user.GetUsername(), user.GetEmail())
+    // Sign with secret key (simplified)
+    return "eyJhbGciOiJIUzI1NiJ9." + payload + ".signature"
+}
+```
+
+```typescript
+class AuthTokenService {
+    generateToken(user: User): string {
+        // Create JWT payload with user claims
+        const payload = `{"username":"${user.getUsername()}","email":"${user.getEmail()}"}`;
+        // Sign with secret key (simplified)
+        return `eyJhbGciOiJIUzI1NiJ9.${payload}.signature`;
+    }
+}
+```
+
+
+You can switch from JWT to opaque tokens, change the signing algorithm, or adjust token expiry without affecting the rest of your codebase. The auth logic is completely isolated from password hashing, database operations, and email delivery.
+
+#### Responsibility 4: Sending the Welcome Email
+
+This class is responsible only for sending emails.
+
+
+```java
+class EmailService {
+    public void sendWelcomeEmail(User user) {
+        System.out.println("Sending welcome email to: " + user.getEmail());
+        System.out.println("Welcome to our platform, " + user.getUsername() + "!");
+    }
+}
+```
+
+```python
+class EmailService:
+    def send_welcome_email(self, user: User):
+        print(f"Sending welcome email to: {user.get_email()}")
+        print(f"Welcome to our platform, {user.get_username()}!")
+```
+
+```cpp
+class EmailService {
+public:
+    void sendWelcomeEmail(const User& user) {
+        cout << "Sending welcome email to: " << user.getEmail() << endl;
+        cout << "Welcome to our platform, " << user.getUsername() << "!" << endl;
+    }
+};
+```
+
+```csharp
+class EmailService
+{
+    public void SendWelcomeEmail(User user)
+    {
+        Console.WriteLine("Sending welcome email to: " + user.GetEmail());
+        Console.WriteLine("Welcome to our platform, " + user.GetUsername() + "!");
+    }
+}
+```
+
+```go
+type EmailService struct{}
+
+func (s *EmailService) SendWelcomeEmail(user *User) {
+    fmt.Printf("Sending welcome email to: %s\n", user.GetEmail())
+    fmt.Printf("Welcome to our platform, %s!\n", user.GetUsername())
+}
+```
+
+```typescript
+class EmailService {
+    sendWelcomeEmail(user: User): void {
+        console.log(`Sending welcome email to: ${user.getEmail()}`);
+        console.log(`Welcome to our platform, ${user.getUsername()}!`);
+    }
+}
+```
+
+
+It does not hash passwords or generate tokens. It just sends the welcome email. If you need to switch from SMTP to a third-party email API, this is the only class you touch.
+
+---
+
+## 5. Common Pitfalls While Applying SRP
+
+SRP sounds straightforward in theory, but developers run into several traps when applying it in practice. Let's look at the most common ones and how to avoid them.
+
+#### 1. Over-Splitting Responsibilities
+
+The mistake here is breaking a class into too many tiny classes that don't add real value.
+
+For example, creating separate classes for **PasswordValidator**, **SaltGenerator**, **BcryptEncoder**, and **HashAggregator** when all of these could be grouped into a cohesive `PasswordHasher`.
+
+Why is this a problem? It leads to unnecessary complexity, makes the system harder to understand, and increases overhead in navigating and wiring too many classes together.
+
+Each new class adds a file, an import, and a conceptual dependency that someone has to hold in their head.
+
+&gt; Focus on 
+&gt;
+&gt; **cohesion**
+&gt;
+&gt; , not fragmentation. Group logic that changes together or belongs to the same business concern.
+
+#### 2. Confusing Methods with Responsibilities
+
+Sometimes developers assume each method must be its own class. Consider an `EmailService` that can send different types of emails.
+
+
+```java
+class EmailService {
+    public void sendWelcomeEmail() {}
+    public void sendPayslipEmail() {}
+}
+```
+
+```python
+class EmailService:
+    def send_welcome_email(self):
+        pass
+
+    def send_payslip_email(self):
+        pass
+```
+
+```cpp
+class EmailService {
+public:
+    void sendWelcomeEmail() {}
+    void sendPayslipEmail() {}
+};
+```
+
+```csharp
+class EmailService
+{
+    public void SendWelcomeEmail()
+    {
+        // Implementation
+    }
+
+    public void SendPayslipEmail()
+    {
+        // Implementation
+    }
+}
+```
+
+```go
+type EmailService struct{}
+
+func (s *EmailService) SendWelcomeEmail() {
+    // Implementation
+}
+
+func (s *EmailService) SendPayslipEmail() {
+    // Implementation
+}
+```
+
+```typescript
+class EmailServiceExample {
+    sendWelcomeEmail(): void {}
+    sendPayslipEmail(): void {}
+}
+```
+
+
+Some developers might try to split this into **WelcomeEmailSender** and **PayslipEmailSender**. But both methods deal with the same responsibility: sending emails. Splitting them adds more boilerplate without clear benefits.
+
+&gt; Don't confuse the 
+&gt;
+&gt; *number of methods*
+&gt;
+&gt;  with the 
+&gt;
+&gt; *number of responsibilities*
+&gt;
+&gt; . If the methods serve the same purpose (sending emails), it is fine to keep them together.
+
+#### 3. Ignoring SRP in Small or Utility Classes
+
+The mistake is thinking, "This class is small and works fine, no need to split it." But a utility class that starts off simple can quietly grow into a mess.
+
+
+```java
+class ReportUtils {
+    public void generateCSV() {}
+    public void sendReportEmail() {}
+    public void archiveReport() {}
+}
+```
+
+```python
+class ReportUtils:
+    def generate_csv(self):
+        pass
+
+    def send_report_email(self):
+        pass
+
+    def archive_report(self):
+        pass
+```
+
+```cpp
+class ReportUtils {
+public:
+    void generateCSV() {
+        // Implementation
+    }
+
+    void sendReportEmail() {
+        // Implementation
+    }
+
+    void archiveReport() {
+        // Implementation
+    }
+};
+```
+
+```csharp
+class ReportUtils
+{
+    public void GenerateCSV()
+    {
+        // Implementation
+    }
+
+    public void SendReportEmail()
+    {
+        // Implementation
+    }
+
+    public void ArchiveReport()
+    {
+        // Implementation
+    }
+}
+```
+
+```go
+type ReportUtils struct{}
+
+func (r *ReportUtils) GenerateCSV() {
+    // Implementation
+}
+
+func (r *ReportUtils) SendReportEmail() {
+    // Implementation
+}
+
+func (r *ReportUtils) ArchiveReport() {
+    // Implementation
+}
+```
+
+```typescript
+class ReportUtils {
+    generateCSV(): void {}
+    sendReportEmail(): void {}
+    archiveReport(): void {}
+}
+```
+
+
+These responsibilities often evolve independently. The CSV format might change because of a new business requirement, the email service might switch providers, and the archive strategy might move from local storage to cloud. Small changes to one feature might introduce bugs in others.
+
+&gt; Watch for creeping responsibilities even in utility classes. Apply SRP early, before small classes become unmanageable.
+
+#### 4. Misunderstanding “Reason to Change”
+
+The mistake is taking the "reason to change" definition too literally or too vaguely.
+
+A bad interpretation would be: "I only ever change this class when a stakeholder asks for a change, so it has one reason to change." 
+
+SRP is not about who asks for the change, but what kind of change is being made. A class that handles both password hashing and database persistence has two reasons to change, even if the same product manager requests both updates.
+
+&gt; Clarify the responsibility in terms of 
+&gt;
+&gt; **business logic or technical behavior**
+&gt;
+&gt; . Ask: 
+&gt;
+&gt; *Is this logic cohesive, or are unrelated concerns bundled together?*
+
+---
+
+## 6. Common Questions About SRP
+
+
+&gt; #### "Doesn't this create too many small classes?"
+
+Yes, **you’ll likely end up with more classes** but that’s not a bad thing.
+
+Instead of having one massive class doing everything poorly, you have smaller, focused classes doing one thing well. These classes are:
+
+- Easier to **read**
+- Easier to **test**
+- Easier to **maintain**
+- Easier to **reuse**
+
+Think of it as **managing complexity through separation**, not increasing it. When responsibilities are clearly separated, your system becomes easier to reason about even if the file count grows.
+
+&gt; SRP helps reduce cognitive load, even if it increases the class count.
+
+
+
+&gt; #### "How small should a responsibility be?"
+
+There’s no hard-and-fast rule. It depends on your domain and use case. But here’s a simple **heuristic**:
+
+&gt; **If you need to use the word “and” or “or” to describe what your class does, it probably has more than one responsibility.**
+
+**Example:**
+
+- "This class generates reports *and* sends emails." → Two responsibilities
+
+Another tip: If the **reasons for change** are unrelated say, a tax policy update vs. a new email template, your class is likely doing too much.
+
+
+
+&gt; #### "Does SRP apply beyond classes?"
+
+Absolutely. SRP can and should be applied across multiple levels:
+
+- **Class: **A class should have one reason to change.
+- **Method: **A method should do one thing.
+- **Module: **A module should encapsulate one area of functionality.
+- **Service: **A service (or microservice) should serve a single domain.
+- **System: **Even large systems can be organized around single responsibilities.
+
+&gt; SRP is a mindset: 
+&gt;
+&gt; **separate concerns to improve clarity and adaptability**
+&gt;
+&gt; , no matter the scale.
+
+
+
+&gt; #### "Does SRP make testing harder or easier?"
+
+When a class does only one thing, testing becomes straightforward.
+
+You don’t have to:
+
+- Mock half the world
+- Stub unrelated services
+- Worry about hidden side effects
+
+You can focus on the specific input/output of a class without worrying about unrelated functionality baked into it.
+
+
+
+&gt; #### "What if the responsibilities are related?"
+
+Sometimes it’s okay to group closely related behaviors into one class.
+
+For example, a `EmailService` class that:
+
+- Sends welcome emails
+- Sends password reset emails
+- Sends payslip emails
+
+That’s fine. They all fall under the same responsibility: **sending emails**. But if that class also starts doing PDF generation or user authentication, it’s time to split it up.
+
+
+
+&gt; #### "Is SRP just another rule I have to follow?"
+
+Think of SRP less as a strict rule and more as a **guiding principle**. It won’t always be obvious where to draw the line, and that’s okay.
+
+Use SRP to:
+
+- Make your code easier to evolve
+- Isolate reasons for change
+- Reduce the blast radius of bugs
+
+When used wisely, SRP becomes a **tool to manage change and complexity**, not a burden.
+
+
+</section>

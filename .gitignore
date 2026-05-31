@@ -25,3 +25,7 @@ dist-ssr
 *.sw?
 
 .env
+
+# Notes draft markdown files
+notes
+scraper

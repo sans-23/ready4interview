@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { SYSTEM_DESIGN_SECTIONS, JAVA_SECTIONS, getTrackByArticleId } from '../config/navigation';
+import { TRACK_CONFIGS, getTrackByArticleId } from '../config/navigation';
 import { useProgress } from '../context/ProgressContext';
 import './Sidebar.css';
 
@@ -96,8 +96,9 @@ export default function LeftSidebar({ isOpen }) {
   const articleId = location.pathname.substring(1);
   const track = getTrackByArticleId(articleId) || 'system-design';
 
-  const sections = track === 'java' ? JAVA_SECTIONS : SYSTEM_DESIGN_SECTIONS;
-  const brandTitle = track === 'java' ? 'Java Deep Dive' : 'Learn System Design';
+  const trackConfig = TRACK_CONFIGS[track] || TRACK_CONFIGS['system-design'];
+  const sections = trackConfig.sections;
+  const brandTitle = trackConfig.title;
 
   const { completedArticles } = useProgress();
 

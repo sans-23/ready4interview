@@ -550,18 +550,63 @@ const TOC_BY_ARTICLE = {
 
 export default function RightSidebar() {
   const { articleId } = useParams();
-  const tocItems = TOC_BY_ARTICLE[articleId] || TOC_BY_ARTICLE['networking'];
-  
-  const [activeId, setActiveId] = useState(tocItems[0]?.id);
+  const [tocItems, setTocItems] = useState([]);
+  const [activeId, setActiveId] = useState('');
   const [copied, setCopied] = useState(false);
   const observerRef = useRef(null);
 
-  // Reset active ID when article changes
+  // Dynamic heading extraction logic
   useEffect(() => {
-    setActiveId(tocItems[0]?.id);
-  }, [articleId, tocItems]);
+    if (TOC_BY_ARTICLE[articleId]) {
+      setTocItems(TOC_BY_ARTICLE[articleId]);
+      setActiveId(TOC_BY_ARTICLE[articleId][0]?.id || '');
+      return;
+    }
 
+    const extractHeadings = () => {
+      const articleEl = document.querySelector('article');
+      if (!articleEl) return;
+
+      const headings = articleEl.querySelectorAll('h2, h3');
+      const items = [];
+
+      headings.forEach((heading) => {
+        let id = heading.id;
+        const text = heading.textContent || '';
+        
+        // Skip header titles or empty headings
+        if (heading.closest('.article-header') || !text.trim()) {
+          return;
+        }
+
+        // Generate clean ID from heading text if missing
+        if (!id) {
+          id = text
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+          heading.id = id;
+        }
+
+        const isH3 = heading.tagName.toLowerCase() === 'h3';
+        const label = isH3 ? `— ${text}` : text;
+
+        items.push({ id, label });
+      });
+
+      setTocItems(items);
+      setActiveId(items[0]?.id || '');
+    };
+
+    // Run after a short timeout to ensure MDX component has loaded and rendered
+    const timer = setTimeout(extractHeadings, 150);
+    return () => clearTimeout(timer);
+  }, [articleId]);
+
+  // Scroll synchronization using Intersection Observer
   useEffect(() => {
+    if (tocItems.length === 0) return;
+
     const handleIntersect = (entries) => {
       const visible = entries
         .filter((entry) => entry.isIntersecting)
@@ -613,20 +658,25 @@ export default function RightSidebar() {
     <aside className="right-sidebar">
       <div className="right-sidebar-sticky">
         <h4 className="section-title">On this page</h4>
-        <ul className="toc-list">
-          {tocItems.map(({ id, label }) => (
-            <li key={id} className={`toc-item${activeId === id ? ' active' : ''}`}>
-              <a
-                href={`#${id}`}
-                className={activeId === id ? 'active' : ''}
-                onClick={(e) => handleClick(e, id)}
-              >
-                {label}
-              </a>
-            </li>
-          ))}
-        </ul>
-
+        {tocItems.length > 0 ? (
+          <ul className="toc-list">
+            {tocItems.map(({ id, label }) => (
+              <li key={id} className={`toc-item${activeId === id ? ' active' : ''}`}>
+                <a
+                  href={`#${id}`}
+                  className={activeId === id ? 'active' : ''}
+                  onClick={(e) => handleClick(e, id)}
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="toc-empty" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontStyle: 'italic', padding: '4px 0' }}>
+            No sections on this page
+          </div>
+        )}
       </div>
     </aside>
   );

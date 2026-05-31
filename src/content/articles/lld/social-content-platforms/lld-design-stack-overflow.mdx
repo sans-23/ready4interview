@@ -1,0 +1,3065 @@
+import React from 'react';
+import CodeBlock from '../../../../components/ui/CodeBlock';
+import Callout from '../../../../components/ui/Callout';
+
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Curated Notes</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Design Stack Overflow</span>
+  </div>
+  <h1>Design Stack Overflow</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Master the essentials of Design Stack Overflow in this curated guide.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      10 min read
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<section className="content-section">
+
+
+&gt; **QUESTION**
+&gt;
+&gt; #### What is Stack Overflow?
+&gt;
+&gt; **Stack Overflow** is one of the most widely used question-and-answer platforms for software developers. It enables users to ask technical programming questions, receive answers from the community, and collaboratively improve the quality of information through voting and editing.
+&gt;
+&gt; 
+&gt; 
+&gt; 
+&gt;
+&gt; Although its popularity has declined since the rise of AI tools like ChatGPT, Stack Overflow remains a valuable resource especially for well-structured, peer-reviewed solutions and niche programming discussions.
+&gt;
+&gt; Stack Overflow is used by:
+&gt;
+&gt; - **Beginners** looking to troubleshoot basic issues
+&gt; - **Experienced engineers** seeking deeper insights
+&gt; - **Experts** sharing best practices and advanced techniques
+
+
+In this chapter, we will explore the **low-level design of stack overflow like system** in detail.
+
+Let's start by clarifying the requirements:
+
+---
+
+## 1. Clarifying Requirements
+
+Before starting the design, it is important to ask thoughtful questions to uncover hidden assumptions and better define the scope of the system.
+
+Here is an example of how a discussion between the candidate and the interviewer might unfold:
+
+
+&gt; **DISCUSSION**
+&gt;
+&gt; **Candidate:** Should users be able to comment on both questions and answers? And do we need to support nested comments?
+&gt;
+&gt; **Interviewer:** Yes, comments are allowed on both questions and answers. However, to keep things simple, we’ll support only flat (non-nested) comments for now.
+&gt;
+&gt; **Candidate:** Do we need to implement a user reputation system that changes based on actions like upvotes, downvotes, and accepted answers?
+&gt;
+&gt; **Interviewer: **Yes, users should earn or lose reputation based on votes and whether their answer is accepted. The reputation impact may vary depending on whether the vote is on a question or an answer.
+&gt;
+&gt; **Candidate:** Should we support features like tagging, searching, and filtering based on tags or keywords?
+&gt;
+&gt; **Interviewer:** Yes. Each question can have one or more tags, and the system should support keyword-based search and tag-based filtering.
+
+
+After gathering the details, we can summarize the key system requirements.
+
+### 1.1 Functional Requirements
+
+- Users can post questions, answers, and comments on both questions and answers
+- Users can upvote or downvote questions and answers. A user can only vote once per post.
+- The original poster of a question can accept one answer as the solution.
+- Question can have one or more tags
+- Users earn or lose reputation points based on upvotes/downvotes on their content and whether their answer is accepted
+- Support searching for questions by keywords in the title or body and filtering questions by tags
+
+### 1.2 Non-Functional Requirements
+
+- **Consistency:** Voting actions and reputation updates should be strongly consistent and reflected immediately.
+- **Concurrency:** The system must gracefully handle high-concurrency scenarios, such as multiple users voting on the same post simultaneously.
+- **Scalability:** The design should be scalable to accommodate a growing number of users, questions, and answers.
+
+---
+
+## 2. Identifying Core Entities
+
+Core entities are the fundamental building blocks of our system. We identify them by analyzing the functional requirements and highlighting the **key nouns** and responsibilities that naturally map to object-oriented abstractions such as **classes**, **enums**, or **interfaces**.
+
+Let’s walk through the functional requirements and extract the relevant entities:
+
+#### 1. Users can post questions, answers, and comments.
+
+This clearly suggests the need for a `User` entity to represent participants of the system, along with `Question`, `Answer`, and `Comment` entities. Each of these entities will hold content, metadata (like creation time), and relationships (such as author and parent post).
+
+#### 2. Comments can be added to both questions and answers.
+
+This implies that `Comment` should be a standalone entity with a reference to its parent post (which could be a Question or an Answer). Since we’re only supporting flat comments, we don’t need to model nested replies.
+
+#### 3. Users can upvote or downvote questions and answers, and voting affects reputation.
+
+We need a `Vote` entity to track who voted on what and in what direction (up or down). The **User** entity should maintain a `Reputation` field that is updated based on voting outcomes and accepted answers.
+
+#### 4. A question can have multiple tags and one accepted answer.
+
+We need a `Tag` entity, and the **Question** entity should maintain a list of tags and a reference to the accepted **Answer**.
+
+#### 5. The system should support search and filtering.
+
+To support searching by keyword and filtering by tag, **Question** should expose fields like title, body, and tags in a searchable format. While we may use indexing or search service integrations in real implementation, at the design level this implies the need for search-related APIs and utility methods.
+
+
+&gt; **SUCCESS**
+&gt;
+&gt; ### Summary of Core Entities
+&gt;
+&gt; - `User`: Represents a registered user of the platform. Holds attributes like user ID, display name, and reputation. Responsible for posting content, voting, and earning points.
+&gt; - `Question`: Represents a question posted by a user. Includes title, body, tags, creation timestamp, list of answers, list of comments, votes, and a reference to an accepted answer.
+&gt; - `Answer`: Represents an answer posted to a question. Includes body, author, timestamp, list of comments, and votes. Can be marked as accepted by the original question author.
+&gt; - `Comment`: Represents a comment made on a question or answer. Includes content, author, timestamp, and a reference to the parent post (either a question or answer).
+&gt; - `Vote`: Represents a single upvote or downvote by a user on a question or answer. Includes voter, vote type (up or down), and the target post.
+&gt; - `Tag`: Represents a tag used to categorize questions. Each tag has a name and may optionally include a description.
+&gt; - `Reputation`: Represents a user’s score based on community interactions. May be modeled as a field in the User class or as a separate entity if detailed reputation history is needed.
+&gt; - `SearchService` (optional): Provides methods to perform keyword search and tag-based filtering over the list of questions. May not be an entity per se but a key component of the system.
+
+
+These core entities define the key abstractions of the stack overflow system and will guide the structure of our low-level design and class diagrams.
+
+---
+
+## 3. Designing Classes and Relationships
+
+This section outlines the classes that form the core of the Stack Overflow system, their responsibilities, the relationships between them, and the key design patterns employed.
+
+### 3.1 Class Definitions
+
+The system is broken down into several types of classes, each with a distinct role.
+
+#### Enums
+
+Simple enumerations that define a fixed set of constants.
+
+
+
+
+- `VoteType`: Represents the two types of votes a user can cast: `UPVOTE` and `DOWNVOTE`.
+- `EventType`: Defines all actions that can trigger a reputation change, such as `UPVOTE_QUESTION`, `DOWNVOTE_ANSWER`, and `ACCEPT_ANSWER`.
+
+#### Data Classes
+
+These classes primarily act as data containers with minimal logic.
+
+#### `User`
+
+Represents a platform user with a unique ID, name, and a thread-safe `reputation` score.
+
+
+
+
+#### `Tag`
+
+A simple class representing a topic tag (e.g., "java") that can be associated with questions.
+
+
+
+
+#### **Event**
+
+A data-transfer object used in the Observer pattern. It encapsulates the details of an action, including its `EventType`, the `actor` (user) who performed it, and the `targetPost`.
+
+#### Core Classes
+
+These classes contain the main business logic and structure of the application.
+
+#### `Content (Abstract)`
+
+The base class for all user-generated content.
+
+
+
+
+It holds common attributes like an `id`, `body`, `author`, and `creationTime`.
+
+- `Post`** (Abstract)**: Extends `Content`. It's the foundation for content that can be voted on, like questions and answers. It manages vote counts, tracks voters to prevent duplicates, holds a list of comments, and implements the "Subject" part of the Observer pattern.
+- `Question`: A subclass of `Post` that represents a user's question. It includes a `title`, a set of `Tag`s, a list of `Answer`s, and can have one `acceptedAnswer`.
+- `Answer`: A subclass of `Post` that represents a reply to a `Question`. It has a flag to indicate if it's the `accepted` answer.
+- `Comment`: A simple subclass of `Content`. It represents a comment on a `Post` and doesn't have voting or reputation features.
+
+#### `StackOverflowService`
+
+Acts as the central **Facade** for the entire system.
+
+
+
+
+It provides a simple, unified API for clients to perform all major actions (e.g., creating users, posting questions, voting, searching) and orchestrates the interactions between the other components.
+
+### 3.2 Class Relationships
+
+The classes interact through a combination of inheritance, composition, and association.
+
+#### **Inheritance (Is-A)**
+
+Used to create a hierarchy for content types.
+
+- `Post` and `Comment` inherit from `Content`.
+- `Question` and `Answer` inherit from `Post`. This creates a clear "is-a" relationship (e.g., a `Question` is a type of `Post`).
+
+#### **Implementation (Implements-A)**
+
+Used to enforce contracts defined by interfaces.
+
+- `ReputationManager` implements the `PostObserver` interface, promising to handle post events.
+- `KeywordSearchStrategy`, `TagSearchStrategy`, and `UserSearchStrategy` all implement the `SearchStrategy` interface, providing different ways to filter questions.
+
+#### **Composition (Owns-A)**
+
+Represents a strong "whole-part" relationship where one object owns another and manages its lifecycle.
+
+- `StackOverflowService` **owns** the collections of `User`s, `Question`s, and `Answer`s. These objects are created and managed through the service.
+- A `Question` **owns** its list of `Answer`s.
+- A `Post` **owns** its list of `Comment`s.
+
+#### **Aggregation (Has-A)**
+
+A weaker "has-a" relationship where an object is associated with another independent object.
+
+- A `Content` object (like a `Question` or `Answer`) **has an** `author` (`User`). The `User` exists independently of the content they create.
+- A `Question` **has a** set of `Tag`s. The tags can exist independently of any single question.
+
+#### **Association (Uses-A)**
+
+Represents a relationship where one object uses another to perform an action, without ownership.
+
+- A `Post` **is associated with** a list of `PostObserver`s. It calls their `onPostEvent` method but doesn't own them.
+- The `StackOverflowService` **uses** `SearchStrategy` objects (passed as arguments) to perform searches.
+- An `Event` **is associated with** a `User` (the actor) and a `Post` (the target), linking them together for a specific action.
+
+### 3.3 Key Design Patterns
+
+The design leverages several standard design patterns to create a modular, flexible, and maintainable system.
+
+#### [Observer Pattern](/learn/lld/observer)
+
+This pattern is used to decouple actions from their consequences, such as updating reputation after a vote.
+
+
+
+
+- **Subject**: The `Post` class. It maintains a list of observers and notifies them when an event (like a vote) occurs via its `notifyObservers` method.
+- **Observer**: The `PostObserver` interface.
+- **Concrete Observer**: The `ReputationManager` class. It registers with posts and updates user reputations whenever it receives an event notification.
+- **Benefit**: If we want to add new functionality, like awarding badges for upvotes, we can simply create a new `BadgeManager` class that implements `PostObserver` without changing any of the existing `Post` or `ReputationManager` code.
+
+#### [Strategy Pattern](/learn/lld/strategy)
+
+This pattern is used to define a family of algorithms (search strategies), encapsulate each one, and make them interchangeable.
+
+
+
+
+- **Context**: The `StackOverflowService`. Its `searchQuestions` method accepts a list of strategies.
+- **Strategy**: The `SearchStrategy` interface, which defines the common `filter` operation.
+- **Concrete Strategies**: `KeywordSearchStrategy`, `TagSearchStrategy`, and `UserSearchStrategy`. Each encapsulates a specific filtering algorithm.
+- **Benefit**: The client can compose complex search queries by combining different strategy objects. New search methods can be added easily by creating new classes that implement the `SearchStrategy` interface.
+
+#### [Facade Pattern](/learn/lld/facade)
+
+The `StackOverflowService` class acts as a Facade.
+
+- **Facade**: `StackOverflowService`.
+- **Subsystem**: The network of classes including `User`, `Question`, `ReputationManager`, etc.
+- **Benefit**: It provides a simple, unified interface to a complex subsystem. A client (like the `StackOverflowDemo` class) interacts only with the `StackOverflowService` to perform high-level operations, hiding the internal complexity of object creation, observer registration, and data management.
+
+### 3.4 Full Class Diagram
+
+
+
+
+---
+
+## 4. Implementation
+
+#### 4.1 `VoteType` Enum
+
+Represents the two possible types of votes users can cast on a question or answer.
+
+
+```java
+enum VoteType {
+    UPVOTE, 
+    DOWNVOTE 
+}
+```
+
+```python
+class VoteType(Enum):
+    UPVOTE = "UPVOTE"
+    DOWNVOTE = "DOWNVOTE"
+```
+
+```cpp
+enum class VoteType {
+    UPVOTE,
+    DOWNVOTE
+};
+```
+
+```go
+type VoteType int
+
+const (
+	UPVOTE VoteType = iota
+	DOWNVOTE
+)
+```
+
+```csharp
+enum VoteType
+{
+    UPVOTE,
+    DOWNVOTE
+}
+```
+
+```typescript
+enum VoteType {
+    UPVOTE = "UPVOTE",
+    DOWNVOTE = "DOWNVOTE"
+}
+```
+
+
+#### 4.2 `EventType` Enum
+
+Enumerates all the actions that can impact reputation. Used in the Observer pattern for event handling.
+
+
+```java
+enum EventType {
+    UPVOTE_QUESTION,
+    DOWNVOTE_QUESTION,
+    UPVOTE_ANSWER,
+    DOWNVOTE_ANSWER,
+    ACCEPT_ANSWER
+}
+```
+
+```python
+class EventType(Enum):
+    UPVOTE_QUESTION = "UPVOTE_QUESTION"
+    DOWNVOTE_QUESTION = "DOWNVOTE_QUESTION"
+    UPVOTE_ANSWER = "UPVOTE_ANSWER"
+    DOWNVOTE_ANSWER = "DOWNVOTE_ANSWER"
+    ACCEPT_ANSWER = "ACCEPT_ANSWER"
+```
+
+```cpp
+enum class EventType {
+    UPVOTE_QUESTION,
+    DOWNVOTE_QUESTION,
+    UPVOTE_ANSWER,
+    DOWNVOTE_ANSWER,
+    ACCEPT_ANSWER
+};
+```
+
+```go
+type EventType int
+
+const (
+	UPVOTE_QUESTION EventType = iota
+	DOWNVOTE_QUESTION
+	UPVOTE_ANSWER
+	DOWNVOTE_ANSWER
+	ACCEPT_ANSWER
+)
+```
+
+```csharp
+enum EventType
+{
+    UPVOTE_QUESTION,
+    DOWNVOTE_QUESTION,
+    UPVOTE_ANSWER,
+    DOWNVOTE_ANSWER,
+    ACCEPT_ANSWER
+}
+```
+
+```typescript
+enum EventType {
+    UPVOTE_QUESTION = "UPVOTE_QUESTION",
+    DOWNVOTE_QUESTION = "DOWNVOTE_QUESTION",
+    UPVOTE_ANSWER = "UPVOTE_ANSWER",
+    DOWNVOTE_ANSWER = "DOWNVOTE_ANSWER",
+    ACCEPT_ANSWER = "ACCEPT_ANSWER"
+}
+```
+
+
+#### 4.3 `User`
+
+Represents a user on the platform.
+
+
+```java
+class User {
+    private final String id;
+    private final String name;
+    private final AtomicInteger reputation;
+
+    public User(String name) {
+        this.id = UUID.randomUUID().toString();
+        this.name = name;
+        this.reputation = new AtomicInteger(0);
+    }
+
+    public void updateReputation(int change) {
+        this.reputation.addAndGet(change);
+    }
+
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public int getReputation() { return reputation.get(); }
+}
+```
+
+```python
+class User:
+    def __init__(self, name: str):
+        self.id = str(uuid.uuid4())
+        self.name = name
+        self.reputation = 0
+        self._lock = threading.Lock()
+
+    def update_reputation(self, change: int):
+        with self._lock:
+            self.reputation += change
+
+    def get_id(self) -> str:
+        return self.id
+
+    def get_name(self) -> str:
+        return self.name
+
+    def get_reputation(self) -> int:
+        with self._lock:
+            return self.reputation
+```
+
+```cpp
+class User {
+private:
+    string id;
+    string name;
+    atomic<int> reputation;
+
+public:
+    User(const string& name) : name(name), reputation(0) {
+        id = generateUUID();
+    }
+
+    void updateReputation(int change) {
+        reputation.fetch_add(change);
+    }
+
+    string getId() const { return id; }
+    string getName() const { return name; }
+    int getReputation() const { return reputation.load(); }
+};
+```
+
+```go
+type User struct {
+	id         string
+	name       string
+	reputation int
+}
+
+func NewUser(name string) *User {
+	return &User{
+		id:         uuid.NewString(),
+		name:       name,
+		reputation: 0,
+	}
+}
+
+func (u *User) UpdateReputation(change int) {
+	u.reputation += change
+}
+
+func (u *User) GetId() string { return u.id }
+func (u *User) GetName() string { return u.name }
+func (u *User) GetReputation() int { return u.reputation }
+```
+
+```csharp
+class User
+{
+    private readonly string id;
+    private readonly string name;
+    private int reputation;
+    private readonly object reputationLock = new object();
+
+    public User(string name)
+    {
+        this.id = Guid.NewGuid().ToString();
+        this.name = name;
+        this.reputation = 0;
+    }
+
+    public void UpdateReputation(int change)
+    {
+        lock (reputationLock)
+        {
+            reputation += change;
+        }
+    }
+
+    public string GetId() { return id; }
+    public string GetName() { return name; }
+    public int GetReputation() 
+    { 
+        lock (reputationLock)
+        {
+            return reputation;
+        }
+    }
+}
+```
+
+```typescript
+class User {
+    private readonly id: string;
+    private readonly name: string;
+    private reputation: number;
+
+    constructor(name: string) {
+        this.id = uuidv4();
+        this.name = name;
+        this.reputation = 0;
+    }
+
+    updateReputation(change: number): void {
+        this.reputation += change;
+    }
+
+    getId(): string { 
+        return this.id; 
+    }
+
+    getName(): string { 
+        return this.name; 
+    }
+
+    getReputation(): number { 
+        return this.reputation; 
+    }
+}
+```
+
+
+Maintains a thread-safe `reputation` that changes in response to community activity.
+
+#### 4.4 `Content` (Abstract Class)
+
+Base class for `Post` and `Comment`. Encapsulates common attributes such as content body, author, and creation timestamp.
+
+
+```java
+abstract class Content {
+    protected final String id;
+    protected final String body;
+    protected final User author;
+    protected final LocalDateTime creationTime;
+
+    public Content(String id, String body, User author) {
+        this.id = id;
+        this.body = body;
+        this.author = author;
+        this.creationTime = LocalDateTime.now();
+    }
+    public String getId() { return id; }
+    public String getBody() { return body; }
+    public User getAuthor() { return author; }
+}
+```
+
+```python
+class Content(ABC):
+    def __init__(self, content_id: str, body: str, author: User):
+        self.id = content_id
+        self.body = body
+        self.author = author
+        self.creation_time = datetime.now()
+
+    def get_id(self) -> str:
+        return self.id
+
+    def get_body(self) -> str:
+        return self.body
+
+    def get_author(self) -> User:
+        return self.author
+```
+
+```cpp
+class Content {
+protected:
+    string id;
+    string body;
+    shared_ptr<User> author;
+    chrono::system_clock::time_point creationTime;
+
+public:
+    Content(const string& id, const string& body, shared_ptr<User> author)
+        : id(id), body(body), author(author), creationTime(chrono::system_clock::now()) {}
+
+    virtual ~Content() = default;
+
+    string getId() const { return id; }
+    string getBody() const { return body; }
+    shared_ptr<User> getAuthor() const { return author; }
+};
+```
+
+```go
+type Content struct {
+	id           string
+	body         string
+	author       User
+	creationTime time.Time
+}
+
+func NewContent(id, body string, author User) Content {
+	return Content{
+		id:           id,
+		body:         body,
+		author:       author,
+		creationTime: time.Now(),
+	}
+}
+
+func (c Content) GetID() string {
+	return c.id
+}
+
+func (c Content) GetBody() string {
+	return c.body
+}
+
+func (c Content) GetAuthor() User {
+	return c.author
+}
+```
+
+```csharp
+abstract class Content
+{
+    protected readonly string id;
+    protected readonly string body;
+    protected readonly User author;
+    protected readonly DateTime creationTime;
+
+    public Content(string id, string body, User author)
+    {
+        this.id = id;
+        this.body = body;
+        this.author = author;
+        this.creationTime = DateTime.Now;
+    }
+
+    public string GetId() { return id; }
+    public string GetBody() { return body; }
+    public User GetAuthor() { return author; }
+}
+```
+
+```typescript
+abstract class Content {
+    protected readonly id: string;
+    protected readonly body: string;
+    protected readonly author: User;
+    protected readonly creationTime: Date;
+
+    constructor(id: string, body: string, author: User) {
+        this.id = id;
+        this.body = body;
+        this.author = author;
+        this.creationTime = new Date();
+    }
+
+    getId(): string { 
+        return this.id; 
+    }
+
+    getBody(): string { 
+        return this.body; 
+    }
+
+    getAuthor(): User { 
+        return this.author; 
+    }
+}
+```
+
+
+#### 4.5 `Post`
+
+`Post` tracks votes and prevents duplicate voting.
+
+
+```java
+abstract class Post extends Content {
+    private final AtomicInteger voteCount = new AtomicInteger(0);
+    private final Map<String, VoteType> voters = new ConcurrentHashMap<>();
+    private final List<Comment> comments = new ArrayList<>();
+    private final List<PostObserver> observers = new ArrayList<>();
+
+    public Post(String id, String body, User author) {
+        super(id, body, author);
+    }
+
+    public void addObserver(PostObserver observer) {
+        this.observers.add(observer);
+    }
+
+    protected void notifyObservers(Event event) {
+        observers.forEach(o -> o.onPostEvent(event));
+    }
+
+    public synchronized void vote(User user, VoteType voteType) {
+        String userId = user.getId();
+        if (voters.get(userId) == voteType)
+            return; // Already voted
+
+        int scoreChange = 0;
+        if (voters.containsKey(userId)) { // User is changing their vote
+            scoreChange = (voteType == VoteType.UPVOTE) ? 2 : -2;
+        } else { // New vote
+            scoreChange = (voteType == VoteType.UPVOTE) ? 1 : -1;
+        }
+
+        voters.put(userId, voteType);
+        voteCount.addAndGet(scoreChange);
+
+        EventType eventType = EventType.UPVOTE_QUESTION;
+
+        if (this instanceof Question) {
+            eventType = (voteType == VoteType.UPVOTE ? EventType.UPVOTE_QUESTION : EventType.DOWNVOTE_QUESTION);
+        } else {
+            eventType = (voteType == VoteType.UPVOTE ? EventType.UPVOTE_ANSWER : EventType.DOWNVOTE_ANSWER);
+        }
+
+        notifyObservers(new Event(eventType, user, this));
+    }
+}
+```
+
+```python
+class Post(Content):
+    def __init__(self, post_id: str, body: str, author: User):
+        super().__init__(post_id, body, author)
+        self.vote_count = 0
+        self.voters: Dict[str, VoteType] = {}
+        self.comments: List['Comment'] = []
+        self.observers: List[PostObserver] = []
+        self._lock = threading.Lock()
+
+    def add_observer(self, observer: 'PostObserver'):
+        self.observers.append(observer)
+
+    def notify_observers(self, event: Event):
+        for observer in self.observers:
+            observer.on_post_event(event)
+
+    def vote(self, user: User, vote_type: VoteType):
+        with self._lock:
+            user_id = user.get_id()
+            if self.voters.get(user_id) == vote_type:
+                return  # Already voted
+
+            score_change = 0
+            if user_id in self.voters:  # User is changing their vote
+                score_change = 2 if vote_type == VoteType.UPVOTE else -2
+            else:  # New vote
+                score_change = 1 if vote_type == VoteType.UPVOTE else -1
+
+            self.voters[user_id] = vote_type
+            self.vote_count += score_change
+
+            if isinstance(self, Question):
+                event_type = EventType.UPVOTE_QUESTION if vote_type == VoteType.UPVOTE else EventType.DOWNVOTE_QUESTION
+            else:
+                event_type = EventType.UPVOTE_ANSWER if vote_type == VoteType.UPVOTE else EventType.DOWNVOTE_ANSWER
+
+            self.notify_observers(Event(event_type, user, self))
+```
+
+```cpp
+class Post : public Content {
+protected:
+    atomic<int> voteCount;
+    unordered_map<string, VoteType> voters;
+    vector<shared_ptr<Content>> comments;
+    vector<shared_ptr<PostObserver>> observers;
+    mutable mutex postMutex;
+
+public:
+    Post(const string& id, const string& body, shared_ptr<User> author)
+        : Content(id, body, author), voteCount(0) {}
+
+    virtual ~Post() = default;
+
+    void addObserver(shared_ptr<PostObserver> observer) {
+        observers.push_back(observer);
+    }
+
+    void notifyObservers(const Event& event) {
+        for (const auto& observer : observers) {
+            observer->onPostEvent(event);
+        }
+    }
+
+    void vote(shared_ptr<User> user, VoteType voteType) {
+        lock_guard<mutex> lock(postMutex);
+        string userId = user->getId();
+        
+        auto it = voters.find(userId);
+        if (it != voters.end() && it->second == voteType) {
+            return; // Already voted
+        }
+
+        int scoreChange = 0;
+        if (it != voters.end()) { // User is changing their vote
+            scoreChange = (voteType == VoteType::UPVOTE) ? 2 : -2;
+        } else { // New vote
+            scoreChange = (voteType == VoteType::UPVOTE) ? 1 : -1;
+        }
+
+        voters[userId] = voteType;
+        voteCount.fetch_add(scoreChange);
+
+        EventType eventType;
+        if (dynamic_cast<Question*>(this)) {
+            eventType = (voteType == VoteType::UPVOTE) ? EventType::UPVOTE_QUESTION : EventType::DOWNVOTE_QUESTION;
+        } else {
+            eventType = (voteType == VoteType::UPVOTE) ? EventType::UPVOTE_ANSWER : EventType::DOWNVOTE_ANSWER;
+        }
+
+        notifyObservers(Event(eventType, user, shared_ptr<Post>(this)));
+    }
+};
+```
+
+```go
+type Post struct {
+	Content
+	voteCount *int32
+	voters    map[string]VoteType
+	comments  []Comment
+	observers []PostObserver
+	mu        sync.Mutex
+}
+
+func NewPost(id, body string, author User) *Post {
+	return &Post{
+		Content:   Content{id, body, author},
+		voteCount: new(int32),
+		voters:    make(map[string]VoteType),
+		comments:  []Comment{},
+		observers: []PostObserver{},
+	}
+}
+
+func (p *Post) AddObserver(observer PostObserver) {
+	p.observers = append(p.observers, observer)
+}
+
+func (p *Post) notifyObservers(event Event) {
+	for _, observer := range p.observers {
+		observer.OnPostEvent(event)
+	}
+}
+
+func (p *Post) Vote(user User, voteType VoteType) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	userID := user.GetId()
+	if existing, ok := p.voters[userID]; ok && existing == voteType {
+		return // Already voted
+	}
+
+	scoreChange := 0
+	if _, ok := p.voters[userID]; ok { // User is changing their vote
+		if voteType == VoteType_UPVOTE {
+			scoreChange = 2
+		} else {
+			scoreChange = -2
+		}
+	} else { // New vote
+		if voteType == VoteType_UPVOTE {
+			scoreChange = 1
+		} else {
+			scoreChange = -1
+		}
+	}
+
+	p.voters[userID] = voteType
+	atomic.AddInt32(p.voteCount, int32(scoreChange))
+
+	eventType := EventType_UPVOTE_QUESTION
+
+	if _, ok := any(p).(*Question); ok {
+		if voteType == VoteType_UPVOTE {
+			eventType = EventType_UPVOTE_QUESTION
+		} else {
+			eventType = EventType_DOWNVOTE_QUESTION
+		}
+	} else {
+		if voteType == VoteType_UPVOTE {
+			eventType = EventType_UPVOTE_ANSWER
+		} else {
+			eventType = EventType_DOWNVOTE_ANSWER
+		}
+	}
+
+	p.notifyObservers(Event{eventType, user, p})
+}
+```
+
+```csharp
+abstract class Post : Content
+{
+    private int voteCount = 0;
+    private readonly ConcurrentDictionary<string, VoteType> voters = new ConcurrentDictionary<string, VoteType>();
+    private readonly List<Comment> comments = new List<Comment>();
+    private readonly List<IPostObserver> observers = new List<IPostObserver>();
+    private readonly object postLock = new object();
+
+    public Post(string id, string body, User author) : base(id, body, author)
+    {
+    }
+
+    public void AddObserver(IPostObserver observer)
+    {
+        observers.Add(observer);
+    }
+
+    protected void NotifyObservers(Event eventObj)
+    {
+        foreach (var observer in observers)
+        {
+            observer.OnPostEvent(eventObj);
+        }
+    }
+
+    public void Vote(User user, VoteType voteType)
+    {
+        lock (postLock)
+        {
+            string userId = user.GetId();
+            if (voters.TryGetValue(userId, out VoteType existingVote) && existingVote == voteType)
+                return; // Already voted
+
+            int scoreChange = 0;
+            if (voters.ContainsKey(userId)) // User is changing their vote
+            {
+                scoreChange = (voteType == VoteType.UPVOTE) ? 2 : -2;
+            }
+            else // New vote
+            {
+                scoreChange = (voteType == VoteType.UPVOTE) ? 1 : -1;
+            }
+
+            voters[userId] = voteType;
+            voteCount += scoreChange;
+
+            EventType eventType;
+            if (this is Question)
+            {
+                eventType = (voteType == VoteType.UPVOTE) ? EventType.UPVOTE_QUESTION : EventType.DOWNVOTE_QUESTION;
+            }
+            else
+            {
+                eventType = (voteType == VoteType.UPVOTE) ? EventType.UPVOTE_ANSWER : EventType.DOWNVOTE_ANSWER;
+            }
+
+            NotifyObservers(new Event(eventType, user, this));
+        }
+    }
+}
+```
+
+```typescript
+abstract class Post extends Content {
+    private voteCount: number = 0;
+    private readonly voters: Map<string, VoteType> = new Map();
+    private readonly comments: Comment[] = [];
+    private readonly observers: PostObserver[] = [];
+
+    constructor(id: string, body: string, author: User) {
+        super(id, body, author);
+    }
+
+    addObserver(observer: PostObserver): void {
+        this.observers.push(observer);
+    }
+
+    protected notifyObservers(event: Event): void {
+        this.observers.forEach(o => o.onPostEvent(event));
+    }
+
+    vote(user: User, voteType: VoteType): void {
+        const userId = user.getId();
+        if (this.voters.get(userId) === voteType)
+            return; // Already voted
+
+        let scoreChange = 0;
+        if (this.voters.has(userId)) { // User is changing their vote
+            scoreChange = (voteType === VoteType.UPVOTE) ? 2 : -2;
+        } else { // New vote
+            scoreChange = (voteType === VoteType.UPVOTE) ? 1 : -1;
+        }
+
+        this.voters.set(userId, voteType);
+        this.voteCount += scoreChange;
+
+        let eventType = EventType.UPVOTE_QUESTION;
+
+        if (this instanceof Question) {
+            eventType = (voteType === VoteType.UPVOTE ? EventType.UPVOTE_QUESTION : EventType.DOWNVOTE_QUESTION);
+        } else {
+            eventType = (voteType === VoteType.UPVOTE ? EventType.UPVOTE_ANSWER : EventType.DOWNVOTE_ANSWER);
+        }
+
+        this.notifyObservers(new Event(eventType, user, this));
+    }
+}
+```
+
+
+Implements the Observer pattern to notify attached systems (like `ReputationManager`) of vote events.
+
+#### 4.6 `Tag`
+
+Represents a category or topic label associated with a question, used for searching and filtering.
+
+
+```java
+class Tag {
+    private final String name;
+
+    public Tag(String name) { this.name = name; }
+
+    public String getName() { return name; }
+}
+```
+
+```python
+class Tag:
+    def __init__(self, name: str):
+        self.name = name
+
+    def get_name(self) -> str:
+        return self.name
+```
+
+```cpp
+class Tag {
+private:
+    string name;
+
+public:
+    Tag(const string& name) : name(name) {}
+
+    string getName() const { return name; }
+
+    bool operator<(const Tag& other) const {
+        return name < other.name;
+    }
+};
+```
+
+```go
+type Tag struct {
+	name string
+}
+
+func NewTag(name string) Tag {
+	return Tag{name: name}
+}
+
+func (t Tag) GetName() string {
+	return t.name
+}
+```
+
+```csharp
+class Tag : IComparable<Tag>
+{
+    private readonly string name;
+
+    public Tag(string name)
+    {
+        this.name = name;
+    }
+
+    public string GetName() { return name; }
+}
+```
+
+```typescript
+class Tag {
+    private readonly name: string;
+
+    constructor(name: string) { 
+        this.name = name; 
+    }
+
+    getName(): string { 
+        return this.name; 
+    }
+}
+```
+
+
+#### 4.7 `Question`
+
+
+```java
+class Question extends Post {
+    private final String title;
+    private final Set<Tag> tags;
+    private final List<Answer> answers = new ArrayList<>();
+    private Answer acceptedAnswer;
+
+    public Question(String title, String body, User author, Set<Tag> tags) {
+        super(UUID.randomUUID().toString(), body, author);
+        this.title = title;
+        this.tags = tags;
+    }
+
+    public void addAnswer(Answer answer) { this.answers.add(answer); }
+
+    public synchronized void acceptAnswer(Answer answer) {
+        if (!this.author.getId().equals(answer.getAuthor().getId()) && this.acceptedAnswer == null) {
+            this.acceptedAnswer = answer;
+            answer.setAccepted(true);
+            notifyObservers(new Event(EventType.ACCEPT_ANSWER, answer.getAuthor(), answer));
+        }
+    }
+
+    public String getTitle() { return title; }
+    public Set<Tag> getTags() { return tags; }
+    public List<Answer> getAnswers() { return answers; }
+}
+```
+
+```python
+class Question(Post):
+    def __init__(self, title: str, body: str, author: User, tags: Set[Tag]):
+        super().__init__(str(uuid.uuid4()), body, author)
+        self.title = title
+        self.tags = tags
+        self.answers: List['Answer'] = []
+        self.accepted_answer: Optional['Answer'] = None
+
+    def add_answer(self, answer: 'Answer'):
+        self.answers.append(answer)
+
+    def accept_answer(self, answer: 'Answer'):
+        with self._lock:
+            if not self.author.get_id() == answer.get_author().get_id() and self.accepted_answer is None:
+                self.accepted_answer = answer
+                answer.set_accepted(True)
+                self.notify_observers(Event(EventType.ACCEPT_ANSWER, answer.get_author(), answer))
+
+    def get_title(self) -> str:
+        return self.title
+
+    def get_tags(self) -> Set[Tag]:
+        return self.tags
+
+    def get_answers(self) -> List['Answer']:
+        return self.answers
+```
+
+```cpp
+class Question : public Post {
+private:
+    string title;
+    set<Tag> tags;
+    vector<shared_ptr<Answer>> answers;
+    shared_ptr<Answer> acceptedAnswer;
+
+public:
+    Question(const string& title, const string& body, shared_ptr<User> author, const set<Tag>& tags)
+        : Post(generateUUID(), body, author), title(title), tags(tags), acceptedAnswer(nullptr) {}
+
+    void addAnswer(shared_ptr<Answer> answer) {
+        answers.push_back(answer);
+    }
+
+    void acceptAnswer(shared_ptr<Answer> answer);
+
+    string getTitle() const { return title; }
+    set<Tag> getTags() const { return tags; }
+    vector<shared_ptr<Answer>> getAnswers() const { return answers; }
+};
+```
+
+```go
+type Question struct {
+	Post
+	title          string
+	tags           map[Tag]struct{}
+	answers        []*Answer
+	acceptedAnswer *Answer
+}
+
+func NewQuestion(title, body string, author *User, tags map[Tag]struct{}) *Question {
+	return &Question{
+		Post:    NewPost(uuid.NewString(), body, author),
+		title:   title,
+		tags:    tags,
+		answers: []*Answer{},
+	}
+}
+
+func (q *Question) AddAnswer(answer *Answer) {
+	q.answers = append(q.answers, answer)
+}
+
+func (q *Question) AcceptAnswer(answer *Answer) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.author.GetId() != answer.GetAuthor().GetId() && q.acceptedAnswer == nil {
+		q.acceptedAnswer = answer
+		answer.SetAccepted(true)
+		q.notifyObservers(Event{EventType: ACCEPT_ANSWER, actor: answer.GetAuthor(), target: answer})
+	}
+}
+
+func (q *Question) GetTitle() string { return q.title }
+func (q *Question) GetTags() map[Tag]struct{} { return q.tags }
+func (q *Question) GetAnswers() []*Answer { return q.answers }
+```
+
+```csharp
+class Question : Post
+{
+    private readonly string title;
+    private readonly HashSet<Tag> tags;
+    private readonly List<Answer> answers = new List<Answer>();
+    private Answer acceptedAnswer;
+
+    public Question(string title, string body, User author, HashSet<Tag> tags)
+        : base(Guid.NewGuid().ToString(), body, author)
+    {
+        this.title = title;
+        this.tags = tags;
+    }
+
+    public void AddAnswer(Answer answer)
+    {
+        answers.Add(answer);
+    }
+
+    public void AcceptAnswer(Answer answer)
+    {
+        lock (this)
+        {
+            if (!author.GetId().Equals(answer.GetAuthor().GetId()) && acceptedAnswer == null)
+            {
+                acceptedAnswer = answer;
+                answer.SetAccepted(true);
+                NotifyObservers(new Event(EventType.ACCEPT_ANSWER, answer.GetAuthor(), answer));
+            }
+        }
+    }
+
+    public string GetTitle() { return title; }
+    public HashSet<Tag> GetTags() { return tags; }
+    public List<Answer> GetAnswers() { return answers; }
+}
+```
+
+```typescript
+class Question extends Post {
+    private readonly title: string;
+    private readonly tags: Set<Tag>;
+    private readonly answers: Answer[] = [];
+    private acceptedAnswer: Answer | null = null;
+
+    constructor(title: string, body: string, author: User, tags: Set<Tag>) {
+        super(uuidv4(), body, author);
+        this.title = title;
+        this.tags = tags;
+    }
+
+    addAnswer(answer: Answer): void { 
+        this.answers.push(answer); 
+    }
+
+    acceptAnswer(answer: Answer): void {
+        if (!this.author.getId() === answer.getAuthor().getId() && this.acceptedAnswer === null) {
+            this.acceptedAnswer = answer;
+            answer.setAccepted(true);
+            this.notifyObservers(new Event(EventType.ACCEPT_ANSWER, answer.getAuthor(), answer));
+        }
+    }
+
+    getTitle(): string { 
+        return this.title; 
+    }
+
+    getTags(): Set<Tag> { 
+        return this.tags; 
+    }
+
+    getAnswers(): Answer[] { 
+        return this.answers; 
+    }
+}
+```
+
+
+Extends `Post` with additional attributes:
+
+- `title`: headline of the question
+- `tags`: topical categorization
+- `acceptedAnswer`: tracks the answer accepted by the question author
+
+#### 4.8 `Answer`
+
+Represents a response to a question. An answer can be marked as “accepted” by the question author.
+
+
+```java
+class Answer extends Post {
+    private boolean isAccepted = false;
+
+    public Answer(String body, User author) {
+        super(UUID.randomUUID().toString(), body, author);
+    }
+
+    public void setAccepted(boolean accepted) {
+        isAccepted = accepted;
+    }
+
+    public boolean isAccepted() { return isAccepted; }
+}
+```
+
+```python
+class Answer(Post):
+    def __init__(self, body: str, author: User):
+        super().__init__(str(uuid.uuid4()), body, author)
+        self.is_accepted = False
+
+    def set_accepted(self, accepted: bool):
+        self.is_accepted = accepted
+
+    def is_accepted_answer(self) -> bool:
+        return self.is_accepted
+```
+
+```cpp
+class Answer : public Post {
+private:
+    bool isAccepted;
+
+public:
+    Answer(const string& body, shared_ptr<User> author)
+        : Post(generateUUID(), body, author), isAccepted(false) {}
+
+    void setAccepted(bool accepted) {
+        isAccepted = accepted;
+    }
+
+    bool isAcceptedAnswer() const { return isAccepted; }
+};
+
+// Implementation of Question::acceptAnswer (needs Answer to be defined)
+void Question::acceptAnswer(shared_ptr<Answer> answer) {
+    lock_guard<mutex> lock(postMutex);
+    if (author->getId() != answer->getAuthor()->getId() && acceptedAnswer == nullptr) {
+        acceptedAnswer = answer;
+        answer->setAccepted(true);
+        notifyObservers(Event(EventType::ACCEPT_ANSWER, answer->getAuthor(), answer));
+    }
+}
+```
+
+```go
+type Answer struct {
+	Post
+	isAccepted bool
+}
+
+func NewAnswer(body string, author *User) *Answer {
+	return &Answer{
+		Post:       NewPost(uuid.New().String(), body, author),
+		isAccepted: false,
+	}
+}
+
+func (a *Answer) setAccepted(accepted bool) {
+	a.isAccepted = accepted
+}
+
+func (a *Answer) isAcceptedAnswer() bool { return a.isAccepted }
+```
+
+```csharp
+class Answer : Post
+{
+    private bool isAccepted = false;
+
+    public Answer(string body, User author)
+        : base(Guid.NewGuid().ToString(), body, author)
+    {
+    }
+
+    public void SetAccepted(bool accepted)
+    {
+        isAccepted = accepted;
+    }
+
+    public bool IsAcceptedAnswer() { return isAccepted; }
+}
+```
+
+```typescript
+class Answer extends Post {
+    private isAcceptedFlag: boolean = false;
+
+    constructor(body: string, author: User) {
+        super(uuidv4(), body, author);
+    }
+
+    setAccepted(accepted: boolean): void {
+        this.isAcceptedFlag = accepted;
+    }
+
+    isAccepted(): boolean { 
+        return this.isAcceptedFlag; 
+    }
+}
+```
+
+
+#### 4.9 `Comment`
+
+Comments are simple annotations on a post or answer with no voting or reputation impact.
+
+
+```java
+class Comment extends Content {
+    public Comment(String body, User author) {
+        super(UUID.randomUUID().toString(), body, author);
+    }
+}
+```
+
+```python
+class Comment(Content):
+    def __init__(self, body: str, author: User):
+        super().__init__(str(uuid.uuid4()), body, author)
+```
+
+```cpp
+class Comment : public Content {
+public:
+    Comment(const string& body, shared_ptr<User> author)
+        : Content(generateUUID(), body, author) {}
+};
+```
+
+```go
+type Comment struct {
+	Content
+}
+
+func NewComment(body string, author *User) *Comment {
+	return &Comment{Content{generateUUID(), body, author}}
+}
+```
+
+```csharp
+class Comment : Content
+{
+    public Comment(string body, User author)
+        : base(Guid.NewGuid().ToString(), body, author)
+    {
+    }
+}
+```
+
+```typescript
+class Comment extends Content {
+    constructor(body: string, author: User) {
+        super(uuidv4(), body, author);
+    }
+}
+```
+
+
+#### 4.10 `Event`
+
+Represents an action taken on a post (e.g., vote or accept) and who performed it. Used to trigger side effects like updating reputation.
+
+
+```java
+class Event {
+    private final EventType type;
+    private final User actor;        // user who performed the action
+    private final Post targetPost;   // post being acted on
+
+    public Event(EventType type, User actor, Post targetPost) {
+        this.type = type;
+        this.actor = actor;
+        this.targetPost = targetPost;
+    }
+
+    public EventType getType() { return type; }
+    public User getActor() { return actor; }
+    public Post getTargetPost() { return targetPost; }
+}
+```
+
+```python
+class Event:
+    def __init__(self, event_type: EventType, actor: User, target_post: 'Post'):
+        self.type = event_type
+        self.actor = actor
+        self.target_post = target_post
+
+    def get_type(self) -> EventType:
+        return self.type
+
+    def get_actor(self) -> User:
+        return self.actor
+
+    def get_target_post(self) -> 'Post':
+        return self.target_post
+```
+
+```cpp
+class Event {
+private:
+    EventType type;
+    shared_ptr<User> actor;
+    shared_ptr<Post> targetPost;
+
+public:
+    Event(EventType type, shared_ptr<User> actor, shared_ptr<Post> targetPost)
+        : type(type), actor(actor), targetPost(targetPost) {}
+
+    EventType getType() const { return type; }
+    shared_ptr<User> getActor() const { return actor; }
+    shared_ptr<Post> getTargetPost() const { return targetPost; }
+};
+```
+
+```go
+type Event struct {
+	type       EventType
+	actor      *User
+	targetPost *Post
+}
+
+func NewEvent(eventType EventType, actor *User, targetPost *Post) *Event {
+	return &Event{
+		type:       eventType,
+		actor:      actor,
+		targetPost: targetPost,
+	}
+}
+
+func (e *Event) GetType() EventType { return e.type }
+func (e *Event) GetActor() *User { return e.actor }
+func (e *Event) GetTargetPost() *Post { return e.targetPost }
+```
+
+```csharp
+class Event
+{
+    private readonly EventType type;
+    private readonly User actor;
+    private readonly Post targetPost;
+
+    public Event(EventType type, User actor, Post targetPost)
+    {
+        this.type = type;
+        this.actor = actor;
+        this.targetPost = targetPost;
+    }
+
+    public EventType GetEventType() { return type; }
+    public User GetActor() { return actor; }
+    public Post GetTargetPost() { return targetPost; }
+}
+```
+
+```typescript
+class Event {
+    private readonly type: EventType;
+    private readonly actor: User;        // user who performed the action
+    private readonly targetPost: Post;   // post being acted on
+
+    constructor(type: EventType, actor: User, targetPost: Post) {
+        this.type = type;
+        this.actor = actor;
+        this.targetPost = targetPost;
+    }
+
+    getType(): EventType { 
+        return this.type; 
+    }
+
+    getActor(): User { 
+        return this.actor; 
+    }
+
+    getTargetPost(): Post { 
+        return this.targetPost; 
+    }
+}
+```
+
+
+#### 4.11 `PostObserver` (Observer Pattern)
+
+The Observer pattern is used to decouple the action (e.g., a vote) from its consequences (e.g., reputation change). This makes the system modular and easy to extend with new consequences like badges or notifications.
+
+
+```java
+interface PostObserver {
+    void onPostEvent(Event event);
+}
+```
+
+```python
+class PostObserver(ABC):
+    @abstractmethod
+    def on_post_event(self, event: 'Event'):
+        pass
+```
+
+```cpp
+class PostObserver {
+public:
+    virtual ~PostObserver() = default;
+    virtual void onPostEvent(const Event& event) = 0;
+};
+```
+
+```go
+type PostObserver interface {
+	onPostEvent(event Event)
+}
+```
+
+```csharp
+interface IPostObserver
+{
+    void OnPostEvent(Event eventObj);
+}
+```
+
+```typescript
+interface PostObserver {
+    onPostEvent(event: Event): void;
+}
+```
+
+
+#### 4.12 `ReputationManager`
+
+Handles reputation updates for users based on post activity. Implements `PostObserver` to listen to events from `Post`.
+
+
+```java
+class ReputationManager implements PostObserver {
+    private static final int QUESTION_UPVOTE_REP = 5;
+    private static final int ANSWER_UPVOTE_REP = 10;
+    private static final int ACCEPTED_ANSWER_REP = 15;
+    private static final int DOWNVOTE_REP_PENALTY = -1; // Penalty for the voter
+    private static final int POST_DOWNVOTED_REP_PENALTY = -2; // Penalty for the post author
+
+    @Override
+    public void onPostEvent(Event event) {
+        User postAuthor = event.getTargetPost().getAuthor();
+        switch (event.getType()) {
+            case UPVOTE_QUESTION:
+                postAuthor.updateReputation(QUESTION_UPVOTE_REP);
+                break;
+            case DOWNVOTE_QUESTION:
+                postAuthor.updateReputation(DOWNVOTE_REP_PENALTY);
+                event.getActor().updateReputation(POST_DOWNVOTED_REP_PENALTY); // voter penalty
+                break;
+            case UPVOTE_ANSWER:
+                postAuthor.updateReputation(ANSWER_UPVOTE_REP);
+                break;
+            case DOWNVOTE_ANSWER:
+                postAuthor.updateReputation(DOWNVOTE_REP_PENALTY);
+                event.getActor().updateReputation(POST_DOWNVOTED_REP_PENALTY);
+                break;
+            case ACCEPT_ANSWER:
+                postAuthor.updateReputation(ACCEPTED_ANSWER_REP);
+                break;
+        }
+    }
+}
+```
+
+```python
+class ReputationManager(PostObserver):
+    QUESTION_UPVOTE_REP = 5
+    ANSWER_UPVOTE_REP = 10
+    ACCEPTED_ANSWER_REP = 15
+    DOWNVOTE_REP_PENALTY = -1  # Penalty for the voter
+    POST_DOWNVOTED_REP_PENALTY = -2  # Penalty for the post author
+
+    def on_post_event(self, event: Event):
+        post_author = event.get_target_post().get_author()
+        
+        if event.get_type() == EventType.UPVOTE_QUESTION:
+            post_author.update_reputation(self.QUESTION_UPVOTE_REP)
+        elif event.get_type() == EventType.DOWNVOTE_QUESTION:
+            post_author.update_reputation(self.DOWNVOTE_REP_PENALTY)
+            event.get_actor().update_reputation(self.POST_DOWNVOTED_REP_PENALTY)  # voter penalty
+        elif event.get_type() == EventType.UPVOTE_ANSWER:
+            post_author.update_reputation(self.ANSWER_UPVOTE_REP)
+        elif event.get_type() == EventType.DOWNVOTE_ANSWER:
+            post_author.update_reputation(self.DOWNVOTE_REP_PENALTY)
+            event.get_actor().update_reputation(self.POST_DOWNVOTED_REP_PENALTY)
+        elif event.get_type() == EventType.ACCEPT_ANSWER:
+            post_author.update_reputation(self.ACCEPTED_ANSWER_REP)
+```
+
+```cpp
+class ReputationManager : public PostObserver {
+private:
+    static const int QUESTION_UPVOTE_REP = 5;
+    static const int ANSWER_UPVOTE_REP = 10;
+    static const int ACCEPTED_ANSWER_REP = 15;
+    static const int DOWNVOTE_REP_PENALTY = -1;
+    static const int POST_DOWNVOTED_REP_PENALTY = -2;
+
+public:
+    void onPostEvent(const Event& event) override {
+        auto postAuthor = event.getTargetPost()->getAuthor();
+        
+        switch (event.getType()) {
+            case EventType::UPVOTE_QUESTION:
+                postAuthor->updateReputation(QUESTION_UPVOTE_REP);
+                break;
+            case EventType::DOWNVOTE_QUESTION:
+                postAuthor->updateReputation(DOWNVOTE_REP_PENALTY);
+                event.getActor()->updateReputation(POST_DOWNVOTED_REP_PENALTY);
+                break;
+            case EventType::UPVOTE_ANSWER:
+                postAuthor->updateReputation(ANSWER_UPVOTE_REP);
+                break;
+            case EventType::DOWNVOTE_ANSWER:
+                postAuthor->updateReputation(DOWNVOTE_REP_PENALTY);
+                event.getActor()->updateReputation(POST_DOWNVOTED_REP_PENALTY);
+                break;
+            case EventType::ACCEPT_ANSWER:
+                postAuthor->updateReputation(ACCEPTED_ANSWER_REP);
+                break;
+        }
+    }
+};
+```
+
+```go
+type ReputationManager struct{}
+
+const (
+	QUESTION_UPVOTE_REP        = 5
+	ANSWER_UPVOTE_REP          = 10
+	ACCEPTED_ANSWER_REP        = 15
+	DOWNVOTE_REP_PENALTY       = -1 // Penalty for the voter
+	POST_DOWNVOTED_REP_PENALTY = -2 // Penalty for the post author
+)
+
+func (r *ReputationManager) OnPostEvent(event Event) {
+	postAuthor := event.GetTargetPost().GetAuthor()
+
+	switch event.GetType() {
+	case EventType_UPVOTE_QUESTION:
+		postAuthor.UpdateReputation(QUESTION_UPVOTE_REP)
+	case EventType_DOWNVOTE_QUESTION:
+		postAuthor.UpdateReputation(DOWNVOTE_REP_PENALTY)
+		event.GetActor().UpdateReputation(POST_DOWNVOTED_REP_PENALTY) // voter penalty
+	case EventType_UPVOTE_ANSWER:
+		postAuthor.UpdateReputation(ANSWER_UPVOTE_REP)
+	case EventType_DOWNVOTE_ANSWER:
+		postAuthor.UpdateReputation(DOWNVOTE_REP_PENALTY)
+		event.GetActor().UpdateReputation(POST_DOWNVOTED_REP_PENALTY)
+	case EventType_ACCEPT_ANSWER:
+		postAuthor.UpdateReputation(ACCEPTED_ANSWER_REP)
+	}
+}
+```
+
+```csharp
+class ReputationManager : IPostObserver
+{
+    private const int QUESTION_UPVOTE_REP = 5;
+    private const int ANSWER_UPVOTE_REP = 10;
+    private const int ACCEPTED_ANSWER_REP = 15;
+    private const int DOWNVOTE_REP_PENALTY = -1;
+    private const int POST_DOWNVOTED_REP_PENALTY = -2;
+
+    public void OnPostEvent(Event eventObj)
+    {
+        User postAuthor = eventObj.GetTargetPost().GetAuthor();
+
+        switch (eventObj.GetEventType())
+        {
+            case EventType.UPVOTE_QUESTION:
+                postAuthor.UpdateReputation(QUESTION_UPVOTE_REP);
+                break;
+            case EventType.DOWNVOTE_QUESTION:
+                postAuthor.UpdateReputation(DOWNVOTE_REP_PENALTY);
+                eventObj.GetActor().UpdateReputation(POST_DOWNVOTED_REP_PENALTY);
+                break;
+            case EventType.UPVOTE_ANSWER:
+                postAuthor.UpdateReputation(ANSWER_UPVOTE_REP);
+                break;
+            case EventType.DOWNVOTE_ANSWER:
+                postAuthor.UpdateReputation(DOWNVOTE_REP_PENALTY);
+                eventObj.GetActor().UpdateReputation(POST_DOWNVOTED_REP_PENALTY);
+                break;
+            case EventType.ACCEPT_ANSWER:
+                postAuthor.UpdateReputation(ACCEPTED_ANSWER_REP);
+                break;
+        }
+    }
+}
+```
+
+```typescript
+class ReputationManager implements PostObserver {
+    private static readonly QUESTION_UPVOTE_REP = 5;
+    private static readonly ANSWER_UPVOTE_REP = 10;
+    private static readonly ACCEPTED_ANSWER_REP = 15;
+    private static readonly DOWNVOTE_REP_PENALTY = -1; // Penalty for the voter
+    private static readonly POST_DOWNVOTED_REP_PENALTY = -2; // Penalty for the post author
+
+    onPostEvent(event: Event): void {
+        const postAuthor = event.getTargetPost().getAuthor();
+        switch (event.getType()) {
+            case EventType.UPVOTE_QUESTION:
+                postAuthor.updateReputation(ReputationManager.QUESTION_UPVOTE_REP);
+                break;
+            case EventType.DOWNVOTE_QUESTION:
+                postAuthor.updateReputation(ReputationManager.DOWNVOTE_REP_PENALTY);
+                event.getActor().updateReputation(ReputationManager.POST_DOWNVOTED_REP_PENALTY); // voter penalty
+                break;
+            case EventType.UPVOTE_ANSWER:
+                postAuthor.updateReputation(ReputationManager.ANSWER_UPVOTE_REP);
+                break;
+            case EventType.DOWNVOTE_ANSWER:
+                postAuthor.updateReputation(ReputationManager.DOWNVOTE_REP_PENALTY);
+                event.getActor().updateReputation(ReputationManager.POST_DOWNVOTED_REP_PENALTY);
+                break;
+            case EventType.ACCEPT_ANSWER:
+                postAuthor.updateReputation(ReputationManager.ACCEPTED_ANSWER_REP);
+                break;
+        }
+    }
+}
+```
+
+
+#### 4.13 `SearchStrategy` and Implementations
+
+The Strategy pattern allows us to define a family of search algorithms, encapsulate each one, and make them interchangeable.
+
+
+```java
+interface SearchStrategy {
+    List<Question> filter(List<Question> questions);
+}
+
+class KeywordSearchStrategy implements SearchStrategy {
+    private final String keyword;
+
+    public KeywordSearchStrategy(String keyword) {
+        this.keyword = keyword.toLowerCase();
+    }
+
+    @Override
+    public List<Question> filter(List<Question> questions) {
+        return questions.stream()
+                .filter(q -> q.getTitle().toLowerCase().contains(keyword) ||
+                        q.getBody().toLowerCase().contains(keyword))
+                .collect(Collectors.toList());
+    }
+}
+
+class TagSearchStrategy implements SearchStrategy {
+    private final Tag tag;
+
+    public TagSearchStrategy(Tag tag) {
+        this.tag = tag;
+    }
+
+    @Override
+    public List<Question> filter(List<Question> questions) {
+        return questions.stream()
+                .filter(q -> q.getTags().stream()
+                        .anyMatch(t -> t.getName().equalsIgnoreCase(tag.getName())))
+                .collect(Collectors.toList());
+    }
+}
+
+class UserSearchStrategy implements SearchStrategy {
+    private final User user;
+
+    public UserSearchStrategy(User user) {
+        this.user = user;
+    }
+
+    @Override
+    public List<Question> filter(List<Question> questions) {
+        return questions.stream()
+                .filter(q -> q.getAuthor().getId().equals(user.getId()))
+                .collect(Collectors.toList());
+    }
+}
+```
+
+```python
+class SearchStrategy(ABC):
+    @abstractmethod
+    def filter(self, questions: List[Question]) -> List[Question]:
+        pass
+
+class KeywordSearchStrategy(SearchStrategy):
+    def __init__(self, keyword: str):
+        self.keyword = keyword.lower()
+
+    def filter(self, questions: List[Question]) -> List[Question]:
+        return [q for q in questions 
+                if self.keyword in q.get_title().lower() or self.keyword in q.get_body().lower()]
+
+class TagSearchStrategy(SearchStrategy):
+    def __init__(self, tag: Tag):
+        self.tag = tag
+
+    def filter(self, questions: List[Question]) -> List[Question]:
+        return [q for q in questions 
+                if any(t.get_name().lower() == self.tag.get_name().lower() for t in q.get_tags())]
+
+class UserSearchStrategy(SearchStrategy):
+    def __init__(self, user: User):
+        self.user = user
+
+    def filter(self, questions: List[Question]) -> List[Question]:
+        return [q for q in questions if q.get_author().get_id() == self.user.get_id()]
+```
+
+```cpp
+class SearchStrategy {
+public:
+    virtual ~SearchStrategy() = default;
+    virtual vector<shared_ptr<Question>> filter(const vector<shared_ptr<Question>>& questions) = 0;
+};
+
+class KeywordSearchStrategy : public SearchStrategy {
+private:
+    string keyword;
+
+public:
+    KeywordSearchStrategy(const string& keyword) {
+        this->keyword = keyword;
+        transform(this->keyword.begin(), this->keyword.end(), this->keyword.begin(), ::tolower);
+    }
+
+    vector<shared_ptr<Question>> filter(const vector<shared_ptr<Question>>& questions) override {
+        vector<shared_ptr<Question>> result;
+        for (const auto& q : questions) {
+            string title = q->getTitle();
+            string body = q->getBody();
+            transform(title.begin(), title.end(), title.begin(), ::tolower);
+            transform(body.begin(), body.end(), body.begin(), ::tolower);
+            
+            if (title.find(keyword) != string::npos || body.find(keyword) != string::npos) {
+                result.push_back(q);
+            }
+        }
+        return result;
+    }
+};
+
+class TagSearchStrategy : public SearchStrategy {
+private:
+    Tag tag;
+
+public:
+    TagSearchStrategy(const Tag& tag) : tag(tag) {}
+
+    vector<shared_ptr<Question>> filter(const vector<shared_ptr<Question>>& questions) override {
+        vector<shared_ptr<Question>> result;
+        for (const auto& q : questions) {
+            auto tags = q->getTags();
+            for (const auto& t : tags) {
+                string tagName = t.getName();
+                string searchTagName = tag.getName();
+                transform(tagName.begin(), tagName.end(), tagName.begin(), ::tolower);
+                transform(searchTagName.begin(), searchTagName.end(), searchTagName.begin(), ::tolower);
+                
+                if (tagName == searchTagName) {
+                    result.push_back(q);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+};
+
+class UserSearchStrategy : public SearchStrategy {
+private:
+    shared_ptr<User> user;
+
+public:
+    UserSearchStrategy(shared_ptr<User> user) : user(user) {}
+
+    vector<shared_ptr<Question>> filter(const vector<shared_ptr<Question>>& questions) override {
+        vector<shared_ptr<Question>> result;
+        for (const auto& q : questions) {
+            if (q->getAuthor()->getId() == user->getId()) {
+                result.push_back(q);
+            }
+        }
+        return result;
+    }
+};
+```
+
+```go
+type SearchStrategy interface {
+	Filter(questions []Question) []Question
+}
+
+type KeywordSearchStrategy struct {
+	keyword string
+}
+
+func NewKeywordSearchStrategy(keyword string) *KeywordSearchStrategy {
+	return &KeywordSearchStrategy{keyword: strings.ToLower(keyword)}
+}
+
+func (s *KeywordSearchStrategy) Filter(questions []Question) []Question {
+	result := make([]Question, 0)
+	for _, q := range questions {
+		if strings.Contains(strings.ToLower(q.GetTitle()), s.keyword) || strings.Contains(strings.ToLower(q.GetBody()), s.keyword) {
+			result = append(result, q)
+		}
+	}
+	return result
+}
+
+type TagSearchStrategy struct {
+	tag Tag
+}
+
+func NewTagSearchStrategy(tag Tag) *TagSearchStrategy {
+	return &TagSearchStrategy{tag: tag}
+}
+
+func (s *TagSearchStrategy) Filter(questions []Question) []Question {
+	result := make([]Question, 0)
+	for _, q := range questions {
+		for _, t := range q.GetTags() {
+			if strings.EqualFold(t.GetName(), s.tag.GetName()) {
+				result = append(result, q)
+				break
+			}
+		}
+	}
+	return result
+}
+
+type UserSearchStrategy struct {
+	user User
+}
+
+func NewUserSearchStrategy(user User) *UserSearchStrategy {
+	return &UserSearchStrategy{user: user}
+}
+
+func (s *UserSearchStrategy) Filter(questions []Question) []Question {
+	result := make([]Question, 0)
+	for _, q := range questions {
+		if q.GetAuthor().GetId() == s.user.GetId() {
+			result = append(result, q)
+		}
+	}
+	return result
+}
+```
+
+```csharp
+interface ISearchStrategy
+{
+    List<Question> Filter(List<Question> questions);
+}
+
+class KeywordSearchStrategy : ISearchStrategy
+{
+    private readonly string keyword;
+
+    public KeywordSearchStrategy(string keyword)
+    {
+        this.keyword = keyword.ToLower();
+    }
+
+    public List<Question> Filter(List<Question> questions)
+    {
+        return questions
+            .Where(q => q.GetTitle().ToLower().Contains(keyword) || q.GetBody().ToLower().Contains(keyword))
+            .ToList();
+    }
+}
+
+class TagSearchStrategy : ISearchStrategy
+{
+    private readonly Tag tag;
+
+    public TagSearchStrategy(Tag tag)
+    {
+        this.tag = tag;
+    }
+
+    public List<Question> Filter(List<Question> questions)
+    {
+        return questions
+            .Where(q => q.GetTags().Any(t => t.GetName().Equals(tag.GetName(), StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+    }
+}
+
+class UserSearchStrategy : ISearchStrategy
+{
+    private readonly User user;
+
+    public UserSearchStrategy(User user)
+    {
+        this.user = user;
+    }
+
+    public List<Question> Filter(List<Question> questions)
+    {
+        return questions
+            .Where(q => q.GetAuthor().GetId().Equals(user.GetId()))
+            .ToList();
+    }
+}
+```
+
+```typescript
+interface SearchStrategy {
+    filter(questions: Question[]): Question[];
+}
+
+class KeywordSearchStrategy implements SearchStrategy {
+    private readonly keyword: string;
+
+    constructor(keyword: string) {
+        this.keyword = keyword.toLowerCase();
+    }
+
+    filter(questions: Question[]): Question[] {
+        return questions.filter(q => 
+            q.getTitle().toLowerCase().includes(this.keyword) ||
+            q.getBody().toLowerCase().includes(this.keyword)
+        );
+    }
+}
+
+class TagSearchStrategy implements SearchStrategy {
+    private readonly tag: Tag;
+
+    constructor(tag: Tag) {
+        this.tag = tag;
+    }
+
+    filter(questions: Question[]): Question[] {
+        return questions.filter(q => 
+            Array.from(q.getTags()).some(t => 
+                t.getName().toLowerCase() === this.tag.getName().toLowerCase()
+            )
+        );
+    }
+}
+
+class UserSearchStrategy implements SearchStrategy {
+    private readonly user: User;
+
+    constructor(user: User) {
+        this.user = user;
+    }
+
+    filter(questions: Question[]): Question[] {
+        return questions.filter(q => q.getAuthor().getId() === this.user.getId());
+    }
+}
+```
+
+
+Each strategy (KeywordSearchStrategy, TagSearchStrategy) encapsulates a single filtering algorithm. The main StackOverflowService can accept a list of these strategies and apply them sequentially.
+
+#### 4.14 `StackOverflowService` (Facade)
+
+This class acts as a central **Facade** and orchestrator for the entire system, providing a simple, unified API for clients.
+
+
+```java
+class StackOverflowService {
+    private final Map<String, User> users = new ConcurrentHashMap<>();
+    private final Map<String, Question> questions = new ConcurrentHashMap<>();
+    private final Map<String, Answer> answers = new ConcurrentHashMap<>();
+    private final PostObserver reputationManager = new ReputationManager();
+
+    public User createUser(String name) {
+        User user = new User(name);
+        users.put(user.getId(), user);
+        return user;
+    }
+
+    public Question postQuestion(String userId, String title, String body, Set<Tag> tags) {
+        User author = users.get(userId);
+        Question question = new Question(title, body, author, tags);
+        question.addObserver(reputationManager);
+        questions.put(question.getId(), question);
+        return question;
+    }
+
+    public Answer postAnswer(String userId, String questionId, String body) {
+        User author = users.get(userId);
+        Question question = questions.get(questionId);
+        Answer answer = new Answer(body, author);
+        answer.addObserver(reputationManager);
+        question.addAnswer(answer);
+        answers.put(answer.getId(), answer);
+        return answer;
+    }
+
+    public void voteOnPost(String userId, String postId, VoteType voteType) {
+        User user = users.get(userId);
+        Post post = findPostById(postId);
+        post.vote(user, voteType);
+    }
+
+    public void acceptAnswer(String questionId, String answerId) {
+        Question question = questions.get(questionId);
+        Answer answer = answers.get(answerId);
+        question.acceptAnswer(answer);
+    }
+
+    public List<Question> searchQuestions(List<SearchStrategy> strategies) {
+        List<Question> results = new ArrayList<>(questions.values());
+
+        // Sequentially apply each filter strategy to the results of the previous one.
+        for (SearchStrategy strategy : strategies) {
+            results = strategy.filter(results);
+        }
+
+        return results;
+    }
+
+    public User getUser(String userId) {
+        return users.get(userId);
+    }
+
+    private Post findPostById(String postId) {
+        if (questions.containsKey(postId)) {
+            return questions.get(postId);
+        } else if (answers.containsKey(postId)) {
+            return answers.get(postId);
+        }
+
+        throw new NoSuchElementException("Post not found");
+    }
+}
+```
+
+```python
+class StackOverflowService:
+    def __init__(self):
+        self.users: Dict[str, User] = {}
+        self.questions: Dict[str, Question] = {}
+        self.answers: Dict[str, Answer] = {}
+        self.reputation_manager = ReputationManager()
+
+    def create_user(self, name: str) -> User:
+        user = User(name)
+        self.users[user.get_id()] = user
+        return user
+
+    def post_question(self, user_id: str, title: str, body: str, tags: Set[Tag]) -> Question:
+        author = self.users[user_id]
+        question = Question(title, body, author, tags)
+        question.add_observer(self.reputation_manager)
+        self.questions[question.get_id()] = question
+        return question
+
+    def post_answer(self, user_id: str, question_id: str, body: str) -> Answer:
+        author = self.users[user_id]
+        question = self.questions[question_id]
+        answer = Answer(body, author)
+        answer.add_observer(self.reputation_manager)
+        question.add_answer(answer)
+        self.answers[answer.get_id()] = answer
+        return answer
+
+    def vote_on_post(self, user_id: str, post_id: str, vote_type: VoteType):
+        user = self.users[user_id]
+        post = self.find_post_by_id(post_id)
+        post.vote(user, vote_type)
+
+    def accept_answer(self, question_id: str, answer_id: str):
+        question = self.questions[question_id]
+        answer = self.answers[answer_id]
+        question.accept_answer(answer)
+
+    def search_questions(self, strategies: List[SearchStrategy]) -> List[Question]:
+        results = list(self.questions.values())
+
+        for strategy in strategies:
+            results = strategy.filter(results)
+
+        return results
+
+    def get_user(self, user_id: str) -> User:
+        return self.users[user_id]
+
+    def find_post_by_id(self, post_id: str) -> Post:
+        if post_id in self.questions:
+            return self.questions[post_id]
+        elif post_id in self.answers:
+            return self.answers[post_id]
+        
+        raise KeyError("Post not found")
+```
+
+```cpp
+class StackOverflowService {
+private:
+    unordered_map<string, shared_ptr<User>> users;
+    unordered_map<string, shared_ptr<Question>> questions;
+    unordered_map<string, shared_ptr<Answer>> answers;
+    shared_ptr<PostObserver> reputationManager;
+
+public:
+    StackOverflowService() {
+        reputationManager = make_shared<ReputationManager>();
+    }
+
+    shared_ptr<User> createUser(const string& name) {
+        auto user = make_shared<User>(name);
+        users[user->getId()] = user;
+        return user;
+    }
+
+    shared_ptr<Question> postQuestion(const string& userId, const string& title, const string& body, const set<Tag>& tags) {
+        auto author = users[userId];
+        auto question = make_shared<Question>(title, body, author, tags);
+        question->addObserver(reputationManager);
+        questions[question->getId()] = question;
+        return question;
+    }
+
+    shared_ptr<Answer> postAnswer(const string& userId, const string& questionId, const string& body) {
+        auto author = users[userId];
+        auto question = questions[questionId];
+        auto answer = make_shared<Answer>(body, author);
+        answer->addObserver(reputationManager);
+        question->addAnswer(answer);
+        answers[answer->getId()] = answer;
+        return answer;
+    }
+
+    void voteOnPost(const string& userId, const string& postId, VoteType voteType) {
+        auto user = users[userId];
+        auto post = findPostById(postId);
+        post->vote(user, voteType);
+    }
+
+    void acceptAnswer(const string& questionId, const string& answerId) {
+        auto question = questions[questionId];
+        auto answer = answers[answerId];
+        question->acceptAnswer(answer);
+    }
+
+    vector<shared_ptr<Question>> searchQuestions(const vector<unique_ptr<SearchStrategy>>& strategies) {
+        vector<shared_ptr<Question>> results;
+        for (const auto& pair : questions) {
+            results.push_back(pair.second);
+        }
+
+        for (const auto& strategy : strategies) {
+            results = strategy->filter(results);
+        }
+
+        return results;
+    }
+
+    shared_ptr<User> getUser(const string& userId) {
+        return users[userId];
+    }
+
+private:
+    shared_ptr<Post> findPostById(const string& postId) {
+        auto questionIt = questions.find(postId);
+        if (questionIt != questions.end()) {
+            return questionIt->second;
+        }
+        
+        auto answerIt = answers.find(postId);
+        if (answerIt != answers.end()) {
+            return answerIt->second;
+        }
+
+        throw runtime_error("Post not found");
+    }
+};
+```
+
+```go
+type StackOverflowService struct {
+	users           map[string]*User
+	questions       map[string]*Question
+	answers         map[string]*Answer
+	reputationManager PostObserver
+}
+
+func NewStackOverflowService() *StackOverflowService {
+	return &StackOverflowService{
+		users:             make(map[string]*User),
+		questions:         make(map[string]*Question),
+		answers:           make(map[string]*Answer),
+		reputationManager: ReputationManager{},
+	}
+}
+
+func (s *StackOverflowService) createUser(name string) *User {
+	user := NewUser(name)
+	s.users[user.getId()] = user
+	return user
+}
+
+func (s *StackOverflowService) postQuestion(userId, title, body string, tags map[Tag]struct{}) *Question {
+	author := s.users[userId]
+	question := NewQuestion(title, body, author, tags)
+	question.addObserver(s.reputationManager)
+	s.questions[question.getId()] = question
+	return question
+}
+
+func (s *StackOverflowService) postAnswer(userId, questionId, body string) *Answer {
+	author := s.users[userId]
+	question := s.questions[questionId]
+	answer := NewAnswer(body, author)
+	answer.addObserver(s.reputationManager)
+	question.addAnswer(answer)
+	s.answers[answer.getId()] = answer
+	return answer
+}
+
+func (s *StackOverflowService) voteOnPost(userId, postId string, voteType VoteType) {
+	user := s.users[userId]
+	post := s.findPostById(postId)
+	post.vote(user, voteType)
+}
+
+func (s *StackOverflowService) acceptAnswer(questionId, answerId string) {
+	question := s.questions[questionId]
+	answer := s.answers[answerId]
+	question.acceptAnswer(answer)
+}
+
+func (s *StackOverflowService) searchQuestions(strategies []SearchStrategy) []*Question {
+	results := make([]*Question, 0, len(s.questions))
+	for _, q := range s.questions {
+		results = append(results, q)
+	}
+
+	// Sequentially apply each filter strategy to the results of the previous one.
+	for _, strategy := range strategies {
+		results = strategy.filter(results)
+	}
+
+	return results
+}
+
+func (s *StackOverflowService) getUser(userId string) *User {
+	return s.users[userId]
+}
+
+func (s *StackOverflowService) findPostById(postId string) Post {
+	if q, ok := s.questions[postId]; ok {
+		return q
+	} else if a, ok := s.answers[postId]; ok {
+		return a
+	}
+
+	panic("Post not found")
+}
+```
+
+```csharp
+class StackOverflowService
+{
+    private readonly ConcurrentDictionary<string, User> users = new ConcurrentDictionary<string, User>();
+    private readonly ConcurrentDictionary<string, Question> questions = new ConcurrentDictionary<string, Question>();
+    private readonly ConcurrentDictionary<string, Answer> answers = new ConcurrentDictionary<string, Answer>();
+    private readonly IPostObserver reputationManager = new ReputationManager();
+
+    public User CreateUser(string name)
+    {
+        User user = new User(name);
+        users.TryAdd(user.GetId(), user);
+        return user;
+    }
+
+    public Question PostQuestion(string userId, string title, string body, HashSet<Tag> tags)
+    {
+        User author = users[userId];
+        Question question = new Question(title, body, author, tags);
+        question.AddObserver(reputationManager);
+        questions.TryAdd(question.GetId(), question);
+        return question;
+    }
+
+    public Answer PostAnswer(string userId, string questionId, string body)
+    {
+        User author = users[userId];
+        Question question = questions[questionId];
+        Answer answer = new Answer(body, author);
+        answer.AddObserver(reputationManager);
+        question.AddAnswer(answer);
+        answers.TryAdd(answer.GetId(), answer);
+        return answer;
+    }
+
+    public void VoteOnPost(string userId, string postId, VoteType voteType)
+    {
+        User user = users[userId];
+        Post post = FindPostById(postId);
+        post.Vote(user, voteType);
+    }
+
+    public void AcceptAnswer(string questionId, string answerId)
+    {
+        Question question = questions[questionId];
+        Answer answer = answers[answerId];
+        question.AcceptAnswer(answer);
+    }
+
+    public List<Question> SearchQuestions(List<ISearchStrategy> strategies)
+    {
+        List<Question> results = questions.Values.ToList();
+
+        foreach (var strategy in strategies)
+        {
+            results = strategy.Filter(results);
+        }
+
+        return results;
+    }
+
+    public User GetUser(string userId)
+    {
+        return users[userId];
+    }
+
+    private Post FindPostById(string postId)
+    {
+        if (questions.TryGetValue(postId, out Question question))
+        {
+            return question;
+        }
+        else if (answers.TryGetValue(postId, out Answer answer))
+        {
+            return answer;
+        }
+
+        throw new KeyNotFoundException("Post not found");
+    }
+}
+```
+
+```typescript
+class StackOverflowService {
+    private readonly users: Map<string, User> = new Map();
+    private readonly questions: Map<string, Question> = new Map();
+    private readonly answers: Map<string, Answer> = new Map();
+    private readonly reputationManager: PostObserver = new ReputationManager();
+
+    createUser(name: string): User {
+        const user = new User(name);
+        this.users.set(user.getId(), user);
+        return user;
+    }
+
+    postQuestion(userId: string, title: string, body: string, tags: Set<Tag>): Question {
+        const author = this.users.get(userId);
+        if (!author) {
+            throw new Error("User not found");
+        }
+        const question = new Question(title, body, author, tags);
+        question.addObserver(this.reputationManager);
+        this.questions.set(question.getId(), question);
+        return question;
+    }
+
+    postAnswer(userId: string, questionId: string, body: string): Answer {
+        const author = this.users.get(userId);
+        const question = this.questions.get(questionId);
+        if (!author || !question) {
+            throw new Error("User or question not found");
+        }
+        const answer = new Answer(body, author);
+        answer.addObserver(this.reputationManager);
+        question.addAnswer(answer);
+        this.answers.set(answer.getId(), answer);
+        return answer;
+    }
+
+    voteOnPost(userId: string, postId: string, voteType: VoteType): void {
+        const user = this.users.get(userId);
+        if (!user) {
+            throw new Error("User not found");
+        }
+        const post = this.findPostById(postId);
+        post.vote(user, voteType);
+    }
+
+    acceptAnswer(questionId: string, answerId: string): void {
+        const question = this.questions.get(questionId);
+        const answer = this.answers.get(answerId);
+        if (!question || !answer) {
+            throw new Error("Question or answer not found");
+        }
+        question.acceptAnswer(answer);
+    }
+
+    searchQuestions(strategies: SearchStrategy[]): Question[] {
+        let results: Question[] = Array.from(this.questions.values());
+
+        // Sequentially apply each filter strategy to the results of the previous one.
+        for (const strategy of strategies) {
+            results = strategy.filter(results);
+        }
+
+        return results;
+    }
+
+    getUser(userId: string): User | undefined {
+        return this.users.get(userId);
+    }
+
+    private findPostById(postId: string): Post {
+        if (this.questions.has(postId)) {
+            return this.questions.get(postId)!;
+        } else if (this.answers.has(postId)) {
+            return this.answers.get(postId)!;
+        }
+
+        throw new Error("Post not found");
+    }
+}
+```
+
+
+- **Central Coordinator:** This service is the single point of entry for all high-level operations. It hides the complexity of object creation, observer registration, and data storage.
+- **Observer Registration:** A key responsibility of the service is to ensure that when a new Post is created, the necessary observers (like reputationManager) are attached to it. This connects the "Subject" to its "Observers".
+
+#### 4.15 `StackOverflowDemo`
+
+This driver class demonstrates the end-to-end functionality, showing how a client would use the service to simulate interactions on the platform.
+
+
+```java
+public class StackOverflowDemo {
+    public static void main(String[] args) {
+        StackOverflowService service = new StackOverflowService();
+
+        // 1. Create Users
+        User alice = service.createUser("Alice");
+        User bob = service.createUser("Bob");
+        User charlie = service.createUser("Charlie");
+
+        // 2. Alice posts a question
+        System.out.println("--- Alice posts a question ---");
+        Tag javaTag = new Tag("java");
+        Tag designPatternsTag = new Tag("design-patterns");
+        Set<Tag> tags = Set.of(javaTag, designPatternsTag);
+        Question question = service.postQuestion(alice.getId(), "How to implement Observer Pattern?", "Details about Observer Pattern...", tags);
+        printReputations(alice, bob, charlie);
+
+        // 3. Bob and Charlie post answers
+        System.out.println("\n--- Bob and Charlie post answers ---");
+        Answer bobAnswer = service.postAnswer(bob.getId(), question.getId(), "You can use the java.util.Observer interface.");
+        Answer charlieAnswer = service.postAnswer(charlie.getId(), question.getId(), "A better way is to create your own Observer interface.");
+        printReputations(alice, bob, charlie);
+
+        // 4. Voting happens
+        System.out.println("\n--- Voting Occurs ---");
+        service.voteOnPost(alice.getId(), question.getId(), VoteType.UPVOTE); // Alice upvotes her own question
+        service.voteOnPost(bob.getId(), charlieAnswer.getId(), VoteType.UPVOTE); // Bob upvotes Charlie's answer
+        service.voteOnPost(alice.getId(), bobAnswer.getId(), VoteType.DOWNVOTE); // Alice downvotes Bob's answer
+        printReputations(alice, bob, charlie);
+
+        // 5. Alice accepts Charlie's answer
+        System.out.println("\n--- Alice accepts Charlie's answer ---");
+        service.acceptAnswer(question.getId(), charlieAnswer.getId());
+        printReputations(alice, bob, charlie);
+
+        // 6. Search for questions
+        System.out.println("\n--- (C) Combined Search: Questions by 'Alice' with tag 'java' ---");
+        List<SearchStrategy> filtersC = List.of(
+                new UserSearchStrategy(alice),
+                new TagSearchStrategy(javaTag)
+        );
+        List<Question> searchResults = service.searchQuestions(filtersC);
+        searchResults.forEach(q -> System.out.println("  - Found: " + q.getTitle()));
+    }
+
+    private static void printReputations(User... users) {
+        System.out.println("--- Current Reputations ---");
+        for(User user : users) {
+            System.out.printf("%s: %d\n", user.getName(), user.getReputation());
+        }
+    }
+}
+```
+
+```python
+class StackOverflowDemo:
+    @staticmethod
+    def main():
+        service = StackOverflowService()
+
+        # 1. Create Users
+        alice = service.create_user("Alice")
+        bob = service.create_user("Bob")
+        charlie = service.create_user("Charlie")
+
+        # 2. Alice posts a question
+        print("--- Alice posts a question ---")
+        java_tag = Tag("java")
+        design_patterns_tag = Tag("design-patterns")
+        tags = {java_tag, design_patterns_tag}
+        question = service.post_question(alice.get_id(), "How to implement Observer Pattern?", "Details about Observer Pattern...", tags)
+        StackOverflowDemo.print_reputations(alice, bob, charlie)
+
+        # 3. Bob and Charlie post answers
+        print("\n--- Bob and Charlie post answers ---")
+        bob_answer = service.post_answer(bob.get_id(), question.get_id(), "You can use the java.util.Observer interface.")
+        charlie_answer = service.post_answer(charlie.get_id(), question.get_id(), "A better way is to create your own Observer interface.")
+        StackOverflowDemo.print_reputations(alice, bob, charlie)
+
+        # 4. Voting happens
+        print("\n--- Voting Occurs ---")
+        service.vote_on_post(alice.get_id(), question.get_id(), VoteType.UPVOTE)  # Alice upvotes her own question
+        service.vote_on_post(bob.get_id(), charlie_answer.get_id(), VoteType.UPVOTE)  # Bob upvotes Charlie's answer
+        service.vote_on_post(alice.get_id(), bob_answer.get_id(), VoteType.DOWNVOTE)  # Alice downvotes Bob's answer
+        StackOverflowDemo.print_reputations(alice, bob, charlie)
+
+        # 5. Alice accepts Charlie's answer
+        print("\n--- Alice accepts Charlie's answer ---")
+        service.accept_answer(question.get_id(), charlie_answer.get_id())
+        StackOverflowDemo.print_reputations(alice, bob, charlie)
+
+        # 6. Search for questions
+        print("\n--- (C) Combined Search: Questions by 'Alice' with tag 'java' ---")
+        filters_c = [
+            UserSearchStrategy(alice),
+            TagSearchStrategy(java_tag)
+        ]
+        search_results = service.search_questions(filters_c)
+        for q in search_results:
+            print(f"  - Found: {q.get_title()}")
+
+    @staticmethod
+    def print_reputations(*users):
+        print("--- Current Reputations ---")
+        for user in users:
+            print(f"{user.get_name()}: {user.get_reputation()}")
+
+if __name__ == "__main__":
+    StackOverflowDemo.main()
+```
+
+```cpp
+class StackOverflowDemo {
+public:
+    static void main() {
+        StackOverflowService service;
+
+        // 1. Create Users
+        auto alice = service.createUser("Alice");
+        auto bob = service.createUser("Bob");
+        auto charlie = service.createUser("Charlie");
+
+        // 2. Alice posts a question
+        cout << "--- Alice posts a question ---" << endl;
+        Tag javaTag("java");
+        Tag designPatternsTag("design-patterns");
+        set<Tag> tags = {javaTag, designPatternsTag};
+        auto question = service.postQuestion(alice->getId(), "How to implement Observer Pattern?", "Details about Observer Pattern...", tags);
+        printReputations({alice, bob, charlie});
+
+        // 3. Bob and Charlie post answers
+        cout << "\n--- Bob and Charlie post answers ---" << endl;
+        auto bobAnswer = service.postAnswer(bob->getId(), question->getId(), "You can use the java.util.Observer interface.");
+        auto charlieAnswer = service.postAnswer(charlie->getId(), question->getId(), "A better way is to create your own Observer interface.");
+        printReputations({alice, bob, charlie});
+
+        // 4. Voting happens
+        cout << "\n--- Voting Occurs ---" << endl;
+        service.voteOnPost(alice->getId(), question->getId(), VoteType::UPVOTE);
+        service.voteOnPost(bob->getId(), charlieAnswer->getId(), VoteType::UPVOTE);
+        service.voteOnPost(alice->getId(), bobAnswer->getId(), VoteType::DOWNVOTE);
+        printReputations({alice, bob, charlie});
+
+        // 5. Alice accepts Charlie's answer
+        cout << "\n--- Alice accepts Charlie's answer ---" << endl;
+        service.acceptAnswer(question->getId(), charlieAnswer->getId());
+        printReputations({alice, bob, charlie});
+
+        // 6. Search for questions
+        cout << "\n--- (C) Combined Search: Questions by 'Alice' with tag 'java' ---" << endl;
+        vector<unique_ptr<SearchStrategy>> filtersC;
+        filtersC.push_back(make_unique<UserSearchStrategy>(alice));
+        filtersC.push_back(make_unique<TagSearchStrategy>(javaTag));
+        auto searchResults = service.searchQuestions(filtersC);
+        for (const auto& q : searchResults) {
+            cout << "  - Found: " << q->getTitle() << endl;
+        }
+    }
+
+private:
+    static void printReputations(const vector<shared_ptr<User>>& users) {
+        cout << "--- Current Reputations ---" << endl;
+        for (const auto& user : users) {
+            cout << user->getName() << ": " << user->getReputation() << endl;
+        }
+    }
+};
+
+int main() {
+    StackOverflowDemo::main();
+    return 0;
+}
+```
+
+```go
+class StackOverflowDemo {
+	public static void Main(string[] args) {
+		StackOverflowService service := new StackOverflowService();
+
+		// 1. Create Users
+		alice := service.CreateUser("Alice")
+		bob := service.CreateUser("Bob")
+		charlie := service.CreateUser("Charlie")
+
+		// 2. Alice posts a question
+		Console.WriteLine("--- Alice posts a question ---")
+		javaTag := new Tag("java")
+		designPatternsTag := new Tag("design-patterns")
+		tags := new HashSet<Tag> { javaTag, designPatternsTag }
+		question := service.PostQuestion(alice.GetId(), "How to implement Observer Pattern?", "Details about Observer Pattern...", tags)
+		PrintReputations(alice, bob, charlie)
+
+		// 3. Bob and Charlie post answers
+		Console.WriteLine("\n--- Bob and Charlie post answers ---")
+		bobAnswer := service.PostAnswer(bob.GetId(), question.GetId(), "You can use the java.util.Observer interface.")
+		charlieAnswer := service.PostAnswer(charlie.GetId(), question.GetId(), "A better way is to create your own Observer interface.")
+		PrintReputations(alice, bob, charlie)
+
+		// 4. Voting happens
+		Console.WriteLine("\n--- Voting Occurs ---")
+		service.VoteOnPost(alice.GetId(), question.GetId(), VoteType.UPVOTE)
+		service.VoteOnPost(bob.GetId(), charlieAnswer.GetId(), VoteType.UPVOTE)
+		service.VoteOnPost(alice.GetId(), bobAnswer.GetId(), VoteType.DOWNVOTE)
+		PrintReputations(alice, bob, charlie)
+
+		// 5. Alice accepts Charlie's answer
+		Console.WriteLine("\n--- Alice accepts Charlie's answer ---")
+		service.AcceptAnswer(question.GetId(), charlieAnswer.GetId())
+		PrintReputations(alice, bob, charlie)
+
+		// 6. Search for questions
+		Console.WriteLine("\n--- (C) Combined Search: Questions by 'Alice' with tag 'java' ---")
+		filtersC := new List<ISearchStrategy> {
+			new UserSearchStrategy(alice),
+			new TagSearchStrategy(javaTag)
+		}
+		searchResults := service.SearchQuestions(filtersC)
+		foreach (q in searchResults) {
+			Console.WriteLine("  - Found: " + q.GetTitle())
+		}
+	}
+
+	private static void PrintReputations(params User[] users) {
+		Console.WriteLine("--- Current Reputations ---")
+		foreach (User user in users) {
+			Console.WriteLine($"{user.GetName()}: {user.GetReputation()}")
+		}
+	}
+}
+```
+
+```csharp
+class StackOverflowDemo
+{
+    public static void Main(string[] args)
+    {
+        StackOverflowService service = new StackOverflowService();
+
+        // 1. Create Users
+        User alice = service.CreateUser("Alice");
+        User bob = service.CreateUser("Bob");
+        User charlie = service.CreateUser("Charlie");
+
+        // 2. Alice posts a question
+        Console.WriteLine("--- Alice posts a question ---");
+        Tag javaTag = new Tag("java");
+        Tag designPatternsTag = new Tag("design-patterns");
+        HashSet<Tag> tags = new HashSet<Tag> { javaTag, designPatternsTag };
+        Question question = service.PostQuestion(alice.GetId(), "How to implement Observer Pattern?", "Details about Observer Pattern...", tags);
+        PrintReputations(alice, bob, charlie);
+
+        // 3. Bob and Charlie post answers
+        Console.WriteLine("\n--- Bob and Charlie post answers ---");
+        Answer bobAnswer = service.PostAnswer(bob.GetId(), question.GetId(), "You can use the java.util.Observer interface.");
+        Answer charlieAnswer = service.PostAnswer(charlie.GetId(), question.GetId(), "A better way is to create your own Observer interface.");
+        PrintReputations(alice, bob, charlie);
+
+        // 4. Voting happens
+        Console.WriteLine("\n--- Voting Occurs ---");
+        service.VoteOnPost(alice.GetId(), question.GetId(), VoteType.UPVOTE);
+        service.VoteOnPost(bob.GetId(), charlieAnswer.GetId(), VoteType.UPVOTE);
+        service.VoteOnPost(alice.GetId(), bobAnswer.GetId(), VoteType.DOWNVOTE);
+        PrintReputations(alice, bob, charlie);
+
+        // 5. Alice accepts Charlie's answer
+        Console.WriteLine("\n--- Alice accepts Charlie's answer ---");
+        service.AcceptAnswer(question.GetId(), charlieAnswer.GetId());
+        PrintReputations(alice, bob, charlie);
+
+        // 6. Search for questions
+        Console.WriteLine("\n--- (C) Combined Search: Questions by 'Alice' with tag 'java' ---");
+        List<ISearchStrategy> filtersC = new List<ISearchStrategy>
+        {
+            new UserSearchStrategy(alice),
+            new TagSearchStrategy(javaTag)
+        };
+        List<Question> searchResults = service.SearchQuestions(filtersC);
+        foreach (var q in searchResults)
+        {
+            Console.WriteLine($"  - Found: {q.GetTitle()}");
+        }
+    }
+
+    private static void PrintReputations(params User[] users)
+    {
+        Console.WriteLine("--- Current Reputations ---");
+        foreach (User user in users)
+        {
+            Console.WriteLine($"{user.GetName()}: {user.GetReputation()}");
+        }
+    }
+}
+```
+
+```typescript
+class StackOverflowDemo {
+    static main(): void {
+        const service = new StackOverflowService();
+
+        // 1. Create Users
+        const alice = service.createUser("Alice");
+        const bob = service.createUser("Bob");
+        const charlie = service.createUser("Charlie");
+
+        // 2. Alice posts a question
+        console.log("--- Alice posts a question ---");
+        const javaTag = new Tag("java");
+        const designPatternsTag = new Tag("design-patterns");
+        const tags = new Set([javaTag, designPatternsTag]);
+        const question = service.postQuestion(alice.getId(), "How to implement Observer Pattern?", "Details about Observer Pattern...", tags);
+        StackOverflowDemo.printReputations(alice, bob, charlie);
+
+        // 3. Bob and Charlie post answers
+        console.log("\n--- Bob and Charlie post answers ---");
+        const bobAnswer = service.postAnswer(bob.getId(), question.getId(), "You can use the java.util.Observer interface.");
+        const charlieAnswer = service.postAnswer(charlie.getId(), question.getId(), "A better way is to create your own Observer interface.");
+        StackOverflowDemo.printReputations(alice, bob, charlie);
+
+        // 4. Voting happens
+        console.log("\n--- Voting Occurs ---");
+        service.voteOnPost(alice.getId(), question.getId(), VoteType.UPVOTE); // Alice upvotes her own question
+        service.voteOnPost(bob.getId(), charlieAnswer.getId(), VoteType.UPVOTE); // Bob upvotes Charlie's answer
+        service.voteOnPost(alice.getId(), bobAnswer.getId(), VoteType.DOWNVOTE); // Alice downvotes Bob's answer
+        StackOverflowDemo.printReputations(alice, bob, charlie);
+
+        // 5. Alice accepts Charlie's answer
+        console.log("\n--- Alice accepts Charlie's answer ---");
+        service.acceptAnswer(question.getId(), charlieAnswer.getId());
+        StackOverflowDemo.printReputations(alice, bob, charlie);
+
+        // 6. Search for questions
+        console.log("\n--- (C) Combined Search: Questions by 'Alice' with tag 'java' ---");
+        const filtersC: SearchStrategy[] = [
+            new UserSearchStrategy(alice),
+            new TagSearchStrategy(javaTag)
+        ];
+        const searchResults = service.searchQuestions(filtersC);
+        searchResults.forEach(q => console.log("  - Found: " + q.getTitle()));
+    }
+
+    private static printReputations(...users: User[]): void {
+        console.log("--- Current Reputations ---");
+        for (const user of users) {
+            console.log(`${user.getName()}: ${user.getReputation()}`);
+        }
+    }
+}
+
+// Run the demo
+StackOverflowDemo.main();
+```
+
+
+---
+
+## 5. Run and Test
+
+---
+
+## 6. Quiz
+
+</section>

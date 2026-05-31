@@ -1334,3 +1334,114 @@
   border-color: var(--primary-hover);
   box-shadow: 0 4px 12px rgba(41, 154, 141, 0.2);
 }
+
+/* Premium Mermaid Glow Theme Overrides */
+.mermaid-chart svg {
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+.mermaid-chart svg .node rect,
+.mermaid-chart svg .node polygon,
+.mermaid-chart svg .node circle,
+.mermaid-chart svg .node path {
+  stroke-width: 1.5px !important;
+  rx: 8px !important;
+  ry: 8px !important;
+}
+
+/* Ensure text inside nodes is bold and sharp */
+.mermaid-chart svg .nodeLabel,
+.mermaid-chart svg .node text,
+.mermaid-chart svg .label text {
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+/* primary custom node overrides */
+.mermaid-chart svg .primary rect,
+.mermaid-chart svg .primary polygon,
+.mermaid-chart svg .primary circle,
+.mermaid-chart svg .primary path {
+  fill: rgba(0, 206, 255, 0.1) !important;
+  stroke: #00ceff !important;
+}
+.mermaid-chart svg .primary text,
+.mermaid-chart svg .primary .nodeLabel {
+  fill: #00ceff !important;
+  color: #00ceff !important;
+}
+
+/* orange custom node overrides */
+.mermaid-chart svg .orange rect,
+.mermaid-chart svg .orange polygon,
+.mermaid-chart svg .orange circle,
+.mermaid-chart svg .orange path {
+  fill: rgba(255, 169, 77, 0.1) !important;
+  stroke: #ffa94d !important;
+}
+.mermaid-chart svg .orange text,
+.mermaid-chart svg .orange .nodeLabel {
+  fill: #ffa94d !important;
+  color: #ffa94d !important;
+}
+
+/* green custom node overrides */
+.mermaid-chart svg .green rect,
+.mermaid-chart svg .green polygon,
+.mermaid-chart svg .green circle,
+.mermaid-chart svg .green path {
+  fill: rgba(105, 219, 124, 0.1) !important;
+  stroke: #69db7c !important;
+}
+.mermaid-chart svg .green text,
+.mermaid-chart svg .green .nodeLabel {
+  fill: #69db7c !important;
+  color: #69db7c !important;
+}
+
+/* teal custom node overrides */
+.mermaid-chart svg .teal rect,
+.mermaid-chart svg .teal polygon,
+.mermaid-chart svg .teal circle,
+.mermaid-chart svg .teal path {
+  fill: rgba(56, 217, 169, 0.1) !important;
+  stroke: #38d9a9 !important;
+}
+.mermaid-chart svg .teal text,
+.mermaid-chart svg .teal .nodeLabel {
+  fill: #38d9a9 !important;
+  color: #38d9a9 !important;
+}
+
+/* red custom node overrides */
+.mermaid-chart svg .red rect,
+.mermaid-chart svg .red polygon,
+.mermaid-chart svg .red circle,
+.mermaid-chart svg .red path {
+  fill: rgba(255, 135, 135, 0.1) !important;
+  stroke: #ff8787 !important;
+}
+.mermaid-chart svg .red text,
+.mermaid-chart svg .red .nodeLabel {
+  fill: #ff8787 !important;
+  color: #ff8787 !important;
+}
+
+/* Link / Edge lines */
+.mermaid-chart svg .edgePath .path {
+  stroke: #4f5b8c !important;
+  stroke-width: 1.5px !important;
+}
+.mermaid-chart svg .edgeLabel rect {
+  fill: #1a1b26 !important;
+  rx: 4px !important;
+}
+.mermaid-chart svg .edgeLabel text {
+  fill: var(--text-muted) !important;
+  font-weight: 500 !important;
+}
+.mermaid-chart svg .marker {
+  fill: #4f5b8c !important;
+  stroke: #4f5b8c !important;
+}
+

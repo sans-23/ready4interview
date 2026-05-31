@@ -1,0 +1,1508 @@
+import React from 'react';
+import CodeBlock from '../../../../components/ui/CodeBlock';
+import Callout from '../../../../components/ui/Callout';
+
+<div className="article-header">
+  <div className="breadcrumb">
+    <a href="/">Curated Notes</a>
+    <span className="breadcrumb-separator">›</span>
+    <span className="breadcrumb-current">Exercise: Abstraction</span>
+  </div>
+  <h1>Exercise: Abstraction</h1>
+  <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '16px', lineHeight: '1.6' }}>
+    Master the essentials of Exercise: Abstraction in this curated guide.
+  </p>
+  <div className="meta-info">
+    <span className="meta-item">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      10 min read
+    </span>
+    <span className="difficulty-badge difficulty-badge--intermediate">Intermediate</span>
+  </div>
+</div>
+
+<section className="content-section">
+
+Try implementing the below code exercises to reinforce your understanding. Your goal is to implement the classes below so that they produce the expected output.
+
+---
+
+## Exercise 1: Shape Calculator
+
+
+**Problem:** Build a shape calculation system using an abstract class. The abstract `Shape` class has abstract methods for calculating area and perimeter, plus a concrete `describe()` method that all shapes inherit.
+
+**Requirements:**
+
+- Abstract `Shape` class with: abstract `area()` and `perimeter()` methods, plus a concrete `describe()` method that prints "Shape: [name], Area: [area], Perimeter: [perimeter]"
+- `Circle`: takes a radius. Area = pi *r^2, Perimeter = 2 *pi * r
+- `Rectangle`: takes width and height. Area = w *h, Perimeter = 2 *(w + h)
+- `describe()` should work for any shape without modification
+
+```java
+abstract class Shape {
+    protected String name;
+
+    public Shape(String name) {
+        this.name = name;
+    }
+
+    abstract double area();
+    abstract double perimeter();
+
+    void describe() {
+        // Print: "Shape: [name], Area: [area], Perimeter: [perimeter]"
+        // Use String.format("%.2f", value) to format to 2 decimal places
+    }
+}
+
+class Circle extends Shape {
+    private double radius;
+
+    public Circle(double radius) {
+        super("Circle");
+        this.radius = radius;
+    }
+
+    @Override
+    double area() {
+        // Area = pi * r^2
+        return 0.0;
+    }
+
+    @Override
+    double perimeter() {
+        // Perimeter = 2 * pi * r
+        return 0.0;
+    }
+}
+
+class Rectangle extends Shape {
+    private double width;
+    private double height;
+
+    public Rectangle(double width, double height) {
+        super("Rectangle");
+        this.width = width;
+        this.height = height;
+    }
+
+    @Override
+    double area() {
+        // Area = width * height
+        return 0.0;
+    }
+
+    @Override
+    double perimeter() {
+        // Perimeter = 2 * (width + height)
+        return 0.0;
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Shape circle = new Circle(5.0);
+        circle.describe();
+
+        Shape rectangle = new Rectangle(4.0, 6.0);
+        rectangle.describe();
+    }
+}
+```
+
+```python
+from abc import ABC, abstractmethod
+import math
+
+class Shape(ABC):
+    def __init__(self, name: str):
+        self._name = name
+
+    @abstractmethod
+    def area(self) -> float:
+        pass
+
+    @abstractmethod
+    def perimeter(self) -> float:
+        pass
+
+    def describe(self) -> None:
+        # Print: "Shape: [name], Area: [area], Perimeter: [perimeter]"
+        # Use f-string with :.2f for formatting
+        pass
+
+class Circle(Shape):
+    def __init__(self, radius: float):
+        super().__init__("Circle")
+        self._radius = radius
+
+    def area(self) -> float:
+        # Area = pi * r^2
+        return 0.0
+
+    def perimeter(self) -> float:
+        # Perimeter = 2 * pi * r
+        return 0.0
+
+class Rectangle(Shape):
+    def __init__(self, width: float, height: float):
+        super().__init__("Rectangle")
+        self._width = width
+        self._height = height
+
+    def area(self) -> float:
+        # Area = width * height
+        return 0.0
+
+    def perimeter(self) -> float:
+        # Perimeter = 2 * (width + height)
+        return 0.0
+
+if __name__ == "__main__":
+    circle = Circle(5.0)
+    circle.describe()
+
+    rectangle = Rectangle(4.0, 6.0)
+    rectangle.describe()
+```
+
+```cpp
+#include <iostream>
+#include <string>
+#include <cmath>
+#include <iomanip>
+
+using namespace std;
+
+class Shape {
+protected:
+    string name;
+
+public:
+    Shape(const string& name) : name(name) {}
+    virtual ~Shape() {}
+
+    virtual double area() = 0;
+    virtual double perimeter() = 0;
+
+    void describe() {
+        // Print: "Shape: [name], Area: [area], Perimeter: [perimeter]"
+        // Use fixed << setprecision(2) for formatting
+    }
+};
+
+class Circle : public Shape {
+private:
+    double radius;
+
+public:
+    Circle(double radius) : Shape("Circle"), radius(radius) {}
+
+    double area() override {
+        // Area = pi * r^2
+        return 0.0;
+    }
+
+    double perimeter() override {
+        // Perimeter = 2 * pi * r
+        return 0.0;
+    }
+};
+
+class Rectangle : public Shape {
+private:
+    double width;
+    double height;
+
+public:
+    Rectangle(double width, double height)
+        : Shape("Rectangle"), width(width), height(height) {}
+
+    double area() override {
+        // Area = width * height
+        return 0.0;
+    }
+
+    double perimeter() override {
+        // Perimeter = 2 * (width + height)
+        return 0.0;
+    }
+};
+
+int main() {
+    Circle circle(5.0);
+    circle.describe();
+
+    Rectangle rectangle(4.0, 6.0);
+    rectangle.describe();
+
+    return 0;
+}
+```
+
+```go
+package main
+
+import "fmt"
+
+type Shape interface {
+	Area() float64
+	Perimeter() float64
+	Describe()
+}
+
+type shape struct {
+	name string
+}
+
+func newShape(name string) shape {
+	return shape{name: name}
+}
+
+func (s *shape) Describe() {
+	// Print: "Shape: [name], Area: [area], Perimeter: [perimeter]"
+	// Use fmt.Sprintf("%.2f", value) to format to 2 decimal places
+}
+
+type Circle struct {
+	shape
+	radius float64
+}
+
+func NewCircle(radius float64) *Circle {
+	return &Circle{
+		shape:  newShape("Circle"),
+		radius: radius,
+	}
+}
+
+func (c *Circle) Area() float64 {
+	// Area = pi * r^2
+	return 0.0
+}
+
+func (c *Circle) Perimeter() float64 {
+	// Perimeter = 2 * pi * r
+	return 0.0
+}
+
+type Rectangle struct {
+	shape
+	width  float64
+	height float64
+}
+
+func NewRectangle(width float64, height float64) *Rectangle {
+	return &Rectangle{
+		shape:  newShape("Rectangle"),
+		width:  width,
+		height: height,
+	}
+}
+
+func (r *Rectangle) Area() float64 {
+	// Area = width * height
+	return 0.0
+}
+
+func (r *Rectangle) Perimeter() float64 {
+	// Perimeter = 2 * (width + height)
+	return 0.0
+}
+
+func main() {
+	circle := NewCircle(5.0)
+	circle.Describe()
+
+	rectangle := NewRectangle(4.0, 6.0)
+	rectangle.Describe()
+}
+```
+
+```csharp
+using System;
+
+public abstract class Shape
+{
+    protected string Name;
+
+    public Shape(string name) { Name = name; }
+
+    public abstract double Area();
+    public abstract double Perimeter();
+
+    public void Describe()
+    {
+        // Print: "Shape: [Name], Area: [Area()], Perimeter: [Perimeter()]"
+        // Use :F2 format specifier for 2 decimal places
+    }
+}
+
+public class Circle : Shape
+{
+    private double _radius;
+
+    public Circle(double radius) : base("Circle")
+    {
+        _radius = radius;
+    }
+
+    public override double Area()
+    {
+        // Area = pi * r^2
+        return 0.0;
+    }
+
+    public override double Perimeter()
+    {
+        // Perimeter = 2 * pi * r
+        return 0.0;
+    }
+}
+
+public class Rectangle : Shape
+{
+    private double _width;
+    private double _height;
+
+    public Rectangle(double width, double height) : base("Rectangle")
+    {
+        _width = width;
+        _height = height;
+    }
+
+    public override double Area()
+    {
+        // Area = width * height
+        return 0.0;
+    }
+
+    public override double Perimeter()
+    {
+        // Perimeter = 2 * (width + height)
+        return 0.0;
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        Shape circle = new Circle(5.0);
+        circle.Describe();
+
+        Shape rectangle = new Rectangle(4.0, 6.0);
+        rectangle.Describe();
+    }
+}
+```
+
+```typescript
+abstract class Shape {
+    protected name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
+
+    abstract area(): number;
+    abstract perimeter(): number;
+
+    describe(): void {
+        // Print: "Shape: [name], Area: [area], Perimeter: [perimeter]"
+        // Use .toFixed(2) for formatting
+    }
+}
+
+class Circle extends Shape {
+    private radius: number;
+
+    constructor(radius: number) {
+        super("Circle");
+        this.radius = radius;
+    }
+
+    area(): number {
+        // Area = pi * r^2
+        return 0;
+    }
+
+    perimeter(): number {
+        // Perimeter = 2 * pi * r
+        return 0;
+    }
+}
+
+class Rectangle extends Shape {
+    private width: number;
+    private height: number;
+
+    constructor(width: number, height: number) {
+        super("Rectangle");
+        this.width = width;
+        this.height = height;
+    }
+
+    area(): number {
+        // Area = width * height
+        return 0;
+    }
+
+    perimeter(): number {
+        // Perimeter = 2 * (width + height)
+        return 0;
+    }
+}
+
+const circle: Shape = new Circle(5.0);
+circle.describe();
+
+const rectangle: Shape = new Rectangle(4.0, 6.0);
+rectangle.describe();
+```
+
+#### Solutions
+
+```java
+abstract class Shape {
+    protected String name;
+
+    public Shape(String name) {
+        this.name = name;
+    }
+
+    abstract double area();
+    abstract double perimeter();
+
+    void describe() {
+        System.out.println("Shape: " + name + ", Area: "
+            + String.format("%.2f", area()) + ", Perimeter: "
+            + String.format("%.2f", perimeter()));
+    }
+}
+
+class Circle extends Shape {
+    private double radius;
+
+    public Circle(double radius) {
+        super("Circle");
+        this.radius = radius;
+    }
+
+    @Override
+    double area() {
+        return Math.PI * radius * radius;
+    }
+
+    @Override
+    double perimeter() {
+        return 2 * Math.PI * radius;
+    }
+}
+
+class Rectangle extends Shape {
+    private double width;
+    private double height;
+
+    public Rectangle(double width, double height) {
+        super("Rectangle");
+        this.width = width;
+        this.height = height;
+    }
+
+    @Override
+    double area() {
+        return width * height;
+    }
+
+    @Override
+    double perimeter() {
+        return 2 * (width + height);
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        Shape circle = new Circle(5.0);
+        circle.describe();
+
+        Shape rectangle = new Rectangle(4.0, 6.0);
+        rectangle.describe();
+    }
+}
+```
+
+```python
+from abc import ABC, abstractmethod
+import math
+
+class Shape(ABC):
+    def __init__(self, name: str):
+        self._name = name
+
+    @abstractmethod
+    def area(self) -> float:
+        pass
+
+    @abstractmethod
+    def perimeter(self) -> float:
+        pass
+
+    def describe(self) -> None:
+        print(f"Shape: {self._name}, Area: {self.area():.2f}, Perimeter: {self.perimeter():.2f}")
+
+class Circle(Shape):
+    def __init__(self, radius: float):
+        super().__init__("Circle")
+        self._radius = radius
+
+    def area(self) -> float:
+        return math.pi * self._radius * self._radius
+
+    def perimeter(self) -> float:
+        return 2 * math.pi * self._radius
+
+class Rectangle(Shape):
+    def __init__(self, width: float, height: float):
+        super().__init__("Rectangle")
+        self._width = width
+        self._height = height
+
+    def area(self) -> float:
+        return self._width * self._height
+
+    def perimeter(self) -> float:
+        return 2 * (self._width + self._height)
+
+if __name__ == "__main__":
+    circle = Circle(5.0)
+    circle.describe()
+
+    rectangle = Rectangle(4.0, 6.0)
+    rectangle.describe()
+```
+
+```cpp
+#include <iostream>
+#include <string>
+#include <cmath>
+#include <iomanip>
+
+using namespace std;
+
+class Shape {
+protected:
+    string name;
+
+public:
+    Shape(const string& name) : name(name) {}
+    virtual ~Shape() {}
+
+    virtual double area() = 0;
+    virtual double perimeter() = 0;
+
+    void describe() {
+        cout << fixed << setprecision(2);
+        cout << "Shape: " << name << ", Area: " << area()
+             << ", Perimeter: " << perimeter() << endl;
+    }
+};
+
+class Circle : public Shape {
+private:
+    double radius;
+
+public:
+    Circle(double radius) : Shape("Circle"), radius(radius) {}
+
+    double area() override {
+        return M_PI * radius * radius;
+    }
+
+    double perimeter() override {
+        return 2 * M_PI * radius;
+    }
+};
+
+class Rectangle : public Shape {
+private:
+    double width;
+    double height;
+
+public:
+    Rectangle(double width, double height)
+        : Shape("Rectangle"), width(width), height(height) {}
+
+    double area() override {
+        return width * height;
+    }
+
+    double perimeter() override {
+        return 2 * (width + height);
+    }
+};
+
+int main() {
+    Circle circle(5.0);
+    circle.describe();
+
+    Rectangle rectangle(4.0, 6.0);
+    rectangle.describe();
+
+    return 0;
+}
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+type Shape interface {
+	area() float64
+	perimeter() float64
+	describe()
+}
+
+type shapeBase struct {
+	name string
+}
+
+func (s *shapeBase) describe(shape Shape) {
+	fmt.Printf("Shape: %s, Area: %.2f, Perimeter: %.2f\n", s.name, shape.area(), shape.perimeter())
+}
+
+type Circle struct {
+	shapeBase
+	radius float64
+}
+
+func NewCircle(radius float64) *Circle {
+	return &Circle{
+		shapeBase: shapeBase{name: "Circle"},
+		radius:    radius,
+	}
+}
+
+func (c *Circle) area() float64 {
+	return math.Pi * c.radius * c.radius
+}
+
+func (c *Circle) perimeter() float64 {
+	return 2 * math.Pi * c.radius
+}
+
+func (c *Circle) describe() {
+	c.shapeBase.describe(c)
+}
+
+type Rectangle struct {
+	shapeBase
+	width  float64
+	height float64
+}
+
+func NewRectangle(width, height float64) *Rectangle {
+	return &Rectangle{
+		shapeBase: shapeBase{name: "Rectangle"},
+		width:     width,
+		height:    height,
+	}
+}
+
+func (r *Rectangle) area() float64 {
+	return r.width * r.height
+}
+
+func (r *Rectangle) perimeter() float64 {
+	return 2 * (r.width + r.height)
+}
+
+func (r *Rectangle) describe() {
+	r.shapeBase.describe(r)
+}
+
+func main() {
+	circle := NewCircle(5.0)
+	circle.describe()
+
+	rectangle := NewRectangle(4.0, 6.0)
+	rectangle.describe()
+}
+```
+
+```csharp
+using System;
+
+public abstract class Shape
+{
+    protected string Name;
+
+    public Shape(string name) { Name = name; }
+
+    public abstract double Area();
+    public abstract double Perimeter();
+
+    public void Describe()
+    {
+        Console.WriteLine($"Shape: {Name}, Area: {Area():F2}, Perimeter: {Perimeter():F2}");
+    }
+}
+
+public class Circle : Shape
+{
+    private double _radius;
+
+    public Circle(double radius) : base("Circle")
+    {
+        _radius = radius;
+    }
+
+    public override double Area()
+    {
+        return Math.PI * _radius * _radius;
+    }
+
+    public override double Perimeter()
+    {
+        return 2 * Math.PI * _radius;
+    }
+}
+
+public class Rectangle : Shape
+{
+    private double _width;
+    private double _height;
+
+    public Rectangle(double width, double height) : base("Rectangle")
+    {
+        _width = width;
+        _height = height;
+    }
+
+    public override double Area()
+    {
+        return _width * _height;
+    }
+
+    public override double Perimeter()
+    {
+        return 2 * (_width + _height);
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        Shape circle = new Circle(5.0);
+        circle.Describe();
+
+        Shape rectangle = new Rectangle(4.0, 6.0);
+        rectangle.Describe();
+    }
+}
+```
+
+```typescript
+abstract class Shape {
+    protected name: string;
+
+    constructor(name: string) {
+        this.name = name;
+    }
+
+    abstract area(): number;
+    abstract perimeter(): number;
+
+    describe(): void {
+        console.log(`Shape: ${this.name}, Area: ${this.area().toFixed(2)}, Perimeter: ${this.perimeter().toFixed(2)}`);
+    }
+}
+
+class Circle extends Shape {
+    private radius: number;
+
+    constructor(radius: number) {
+        super("Circle");
+        this.radius = radius;
+    }
+
+    area(): number {
+        return Math.PI * this.radius * this.radius;
+    }
+
+    perimeter(): number {
+        return 2 * Math.PI * this.radius;
+    }
+}
+
+class Rectangle extends Shape {
+    private width: number;
+    private height: number;
+
+    constructor(width: number, height: number) {
+        super("Rectangle");
+        this.width = width;
+        this.height = height;
+    }
+
+    area(): number {
+        return this.width * this.height;
+    }
+
+    perimeter(): number {
+        return 2 * (this.width + this.height);
+    }
+}
+
+const circle: Shape = new Circle(5.0);
+circle.describe();
+
+const rectangle: Shape = new Rectangle(4.0, 6.0);
+rectangle.describe();
+```
+
+
+---
+
+## Exercise 2: Data Exporter
+
+
+**Problem:** Build a data export system where the abstract class provides shared validation logic, and subclasses handle the actual export format.
+
+**Requirements:**
+
+- Abstract `DataExporter` class with: a concrete `validate(data)` method that checks if data is not null/empty and prints a validation message, plus an abstract `export(data)` method
+- `CSVExporter`: formats data as comma-separated values
+- `JSONExporter`: formats data as a JSON array
+- The `validate()` method should be called inside `export()` before formatting, so all exporters validate automatically
+
+```java
+import java.util.List;
+
+abstract class DataExporter {
+    boolean validate(List<String> data) {
+        // Return false and print "Export failed: No data to export." if data is null or empty
+        // Return true and print "Validation passed. Exporting N records." otherwise
+        return true;
+    }
+
+    abstract void export(List<String> data);
+}
+
+class CSVExporter extends DataExporter {
+    @Override
+    void export(List<String> data) {
+        // Call validate(data) first. If validation fails, return early.
+        // Otherwise, print CSV format: "CSV: Alice,Bob,Charlie"
+        // Hint: use String.join(",", data)
+    }
+}
+
+class JSONExporter extends DataExporter {
+    @Override
+    void export(List<String> data) {
+        // Call validate(data) first. If validation fails, return early.
+        // Otherwise, print JSON array format: JSON: ["Alice", "Bob", "Charlie"]
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        DataExporter csv = new CSVExporter();
+        csv.export(List.of("Alice", "Bob", "Charlie"));
+
+        System.out.println();
+
+        DataExporter json = new JSONExporter();
+        json.export(List.of("Alice", "Bob", "Charlie"));
+
+        System.out.println();
+
+        csv.export(List.of()); // Should fail validation
+    }
+}
+```
+
+```python
+from abc import ABC, abstractmethod
+
+class DataExporter(ABC):
+    def validate(self, data: list) -> bool:
+        # Return False and print "Export failed: No data to export." if data is empty
+        # Return True and print "Validation passed. Exporting N records." otherwise
+        return True
+
+    @abstractmethod
+    def export(self, data: list) -> None:
+        pass
+
+class CSVExporter(DataExporter):
+    def export(self, data: list) -> None:
+        # Call self.validate(data) first. If validation fails, return early.
+        # Otherwise, print CSV format: "CSV: Alice,Bob,Charlie"
+        # Hint: use ",".join(data)
+        pass
+
+class JSONExporter(DataExporter):
+    def export(self, data: list) -> None:
+        # Call self.validate(data) first. If validation fails, return early.
+        # Otherwise, print JSON array format: JSON: ["Alice", "Bob", "Charlie"]
+        pass
+
+if __name__ == "__main__":
+    csv = CSVExporter()
+    csv.export(["Alice", "Bob", "Charlie"])
+
+    print()
+
+    json_exp = JSONExporter()
+    json_exp.export(["Alice", "Bob", "Charlie"])
+
+    print()
+
+    csv.export([])  # Should fail validation
+```
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+class DataExporter {
+public:
+    virtual ~DataExporter() {}
+
+    bool validate(const vector<string>& data) {
+        // Return false and print "Export failed: No data to export." if data is empty
+        // Return true and print "Validation passed. Exporting N records." otherwise
+        return true;
+    }
+
+    virtual void exportData(const vector<string>& data) = 0;
+};
+
+class CSVExporter : public DataExporter {
+public:
+    void exportData(const vector<string>& data) override {
+        // Call validate(data) first. If validation fails, return early.
+        // Otherwise, print CSV format: "CSV: Alice,Bob,Charlie"
+    }
+};
+
+class JSONExporter : public DataExporter {
+public:
+    void exportData(const vector<string>& data) override {
+        // Call validate(data) first. If validation fails, return early.
+        // Otherwise, print JSON array format: JSON: ["Alice", "Bob", "Charlie"]
+    }
+};
+
+int main() {
+    CSVExporter csv;
+    csv.exportData({"Alice", "Bob", "Charlie"});
+
+    cout << endl;
+
+    JSONExporter json;
+    json.exportData({"Alice", "Bob", "Charlie"});
+
+    cout << endl;
+
+    csv.exportData({}); // Should fail validation
+    return 0;
+}
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+type DataExporter interface {
+	Validate(data []string) bool
+	Export(data []string)
+}
+
+type BaseDataExporter struct{}
+
+func (d *BaseDataExporter) Validate(data []string) bool {
+	// Return false and print "Export failed: No data to export." if data is nil or empty
+	// Return true and print "Validation passed. Exporting N records." otherwise
+	return true
+}
+
+type CSVExporter struct {
+	BaseDataExporter
+}
+
+func (c *CSVExporter) Export(data []string) {
+	// Call validate(data) first. If validation fails, return early.
+	// Otherwise, print CSV format: "CSV: Alice,Bob,Charlie"
+	// Hint: use strings.Join(data, ",")
+}
+
+type JSONExporter struct {
+	BaseDataExporter
+}
+
+func (j *JSONExporter) Export(data []string) {
+	// Call validate(data) first. If validation fails, return early.
+	// Otherwise, print JSON array format: JSON: ["Alice", "Bob", "Charlie"]
+}
+
+func main() {
+	var csv DataExporter = &CSVExporter{}
+	csv.Export([]string{"Alice", "Bob", "Charlie"})
+
+	fmt.Println()
+
+	var jsonExporter DataExporter = &JSONExporter{}
+	jsonExporter.Export([]string{"Alice", "Bob", "Charlie"})
+
+	fmt.Println()
+
+	csv.Export([]string{}) // Should fail validation
+}
+
+// Ensure imported package is used in placeholder template.
+var _ = strings.Join
+```
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+public abstract class DataExporter
+{
+    public bool Validate(List<string> data)
+    {
+        // Return false and print "Export failed: No data to export." if data is null or empty
+        // Return true and print "Validation passed. Exporting N records." otherwise
+        return true;
+    }
+
+    public abstract void Export(List<string> data);
+}
+
+public class CSVExporter : DataExporter
+{
+    public override void Export(List<string> data)
+    {
+        // Call Validate(data) first. If validation fails, return early.
+        // Otherwise, print CSV format: "CSV: Alice,Bob,Charlie"
+        // Hint: use string.Join(",", data)
+    }
+}
+
+public class JSONExporter : DataExporter
+{
+    public override void Export(List<string> data)
+    {
+        // Call Validate(data) first. If validation fails, return early.
+        // Otherwise, print JSON array format: JSON: ["Alice", "Bob", "Charlie"]
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        DataExporter csv = new CSVExporter();
+        csv.Export(new List<string> { "Alice", "Bob", "Charlie" });
+
+        Console.WriteLine();
+
+        DataExporter json = new JSONExporter();
+        json.Export(new List<string> { "Alice", "Bob", "Charlie" });
+
+        Console.WriteLine();
+
+        csv.Export(new List<string>()); // Should fail validation
+    }
+}
+```
+
+```typescript
+abstract class DataExporter {
+    validate(data: string[]): boolean {
+        // Return false and print "Export failed: No data to export." if data is empty
+        // Return true and print "Validation passed. Exporting N records." otherwise
+        return true;
+    }
+
+    abstract export(data: string[]): void;
+}
+
+class CSVExporter extends DataExporter {
+    export(data: string[]): void {
+        // Call this.validate(data) first. If validation fails, return early.
+        // Otherwise, print CSV format: "CSV: Alice,Bob,Charlie"
+        // Hint: use data.join(",")
+    }
+}
+
+class JSONExporter extends DataExporter {
+    export(data: string[]): void {
+        // Call this.validate(data) first. If validation fails, return early.
+        // Otherwise, print JSON array format: JSON: ["Alice", "Bob", "Charlie"]
+    }
+}
+
+const csv = new CSVExporter();
+csv.export(["Alice", "Bob", "Charlie"]);
+
+console.log();
+
+const json = new JSONExporter();
+json.export(["Alice", "Bob", "Charlie"]);
+
+console.log();
+
+csv.export([]); // Should fail validation
+```
+
+#### Solutions
+
+```java
+import java.util.List;
+
+abstract class DataExporter {
+    boolean validate(List<String> data) {
+        if (data == null || data.isEmpty()) {
+            System.out.println("Export failed: No data to export.");
+            return false;
+        }
+        System.out.println("Validation passed. Exporting " + data.size() + " records.");
+        return true;
+    }
+
+    abstract void export(List<String> data);
+}
+
+class CSVExporter extends DataExporter {
+    @Override
+    void export(List<String> data) {
+        if (!validate(data)) return;
+        System.out.println("CSV: " + String.join(",", data));
+    }
+}
+
+class JSONExporter extends DataExporter {
+    @Override
+    void export(List<String> data) {
+        if (!validate(data)) return;
+        StringBuilder sb = new StringBuilder("JSON: [");
+        for (int i = 0; i < data.size(); i++) {
+            sb.append("\"").append(data.get(i)).append("\"");
+            if (i < data.size() - 1) sb.append(", ");
+        }
+        sb.append("]");
+        System.out.println(sb.toString());
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        DataExporter csv = new CSVExporter();
+        csv.export(List.of("Alice", "Bob", "Charlie"));
+
+        System.out.println();
+
+        DataExporter json = new JSONExporter();
+        json.export(List.of("Alice", "Bob", "Charlie"));
+
+        System.out.println();
+
+        csv.export(List.of()); // Should fail validation
+    }
+}
+```
+
+```python
+from abc import ABC, abstractmethod
+
+class DataExporter(ABC):
+    def validate(self, data: list) -> bool:
+        if not data:
+            print("Export failed: No data to export.")
+            return False
+        print(f"Validation passed. Exporting {len(data)} records.")
+        return True
+
+    @abstractmethod
+    def export(self, data: list) -> None:
+        pass
+
+class CSVExporter(DataExporter):
+    def export(self, data: list) -> None:
+        if not self.validate(data):
+            return
+        print("CSV: " + ",".join(data))
+
+class JSONExporter(DataExporter):
+    def export(self, data: list) -> None:
+        if not self.validate(data):
+            return
+        items = ", ".join(f'"{item}"' for item in data)
+        print(f"JSON: [{items}]")
+
+if __name__ == "__main__":
+    csv = CSVExporter()
+    csv.export(["Alice", "Bob", "Charlie"])
+
+    print()
+
+    json_exp = JSONExporter()
+    json_exp.export(["Alice", "Bob", "Charlie"])
+
+    print()
+
+    csv.export([])  # Should fail validation
+```
+
+```cpp
+#include <iostream>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+class DataExporter {
+public:
+    virtual ~DataExporter() {}
+
+    bool validate(const vector<string>& data) {
+        if (data.empty()) {
+            cout << "Export failed: No data to export." << endl;
+            return false;
+        }
+        cout << "Validation passed. Exporting " << data.size() << " records." << endl;
+        return true;
+    }
+
+    virtual void exportData(const vector<string>& data) = 0;
+};
+
+class CSVExporter : public DataExporter {
+public:
+    void exportData(const vector<string>& data) override {
+        if (!validate(data)) return;
+        cout << "CSV: ";
+        for (size_t i = 0; i < data.size(); i++) {
+            cout << data[i];
+            if (i < data.size() - 1) cout << ",";
+        }
+        cout << endl;
+    }
+};
+
+class JSONExporter : public DataExporter {
+public:
+    void exportData(const vector<string>& data) override {
+        if (!validate(data)) return;
+        cout << "JSON: [";
+        for (size_t i = 0; i < data.size(); i++) {
+            cout << "\"" << data[i] << "\"";
+            if (i < data.size() - 1) cout << ", ";
+        }
+        cout << "]" << endl;
+    }
+};
+
+int main() {
+    CSVExporter csv;
+    csv.exportData({"Alice", "Bob", "Charlie"});
+
+    cout << endl;
+
+    JSONExporter json;
+    json.exportData({"Alice", "Bob", "Charlie"});
+
+    cout << endl;
+
+    csv.exportData({}); // Should fail validation
+    return 0;
+}
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"strings"
+)
+
+type DataExporter interface {
+	Export(data []string)
+}
+
+type BaseDataExporter struct{}
+
+func (b *BaseDataExporter) Validate(data []string) bool {
+	if len(data) == 0 {
+		fmt.Println("Export failed: No data to export.")
+		return false
+	}
+	fmt.Printf("Validation passed. Exporting %d records.\n", len(data))
+	return true
+}
+
+type CSVExporter struct {
+	BaseDataExporter
+}
+
+func (c *CSVExporter) Export(data []string) {
+	if !c.Validate(data) {
+		return
+	}
+	fmt.Println("CSV: " + strings.Join(data, ","))
+}
+
+type JSONExporter struct {
+	BaseDataExporter
+}
+
+func (j *JSONExporter) Export(data []string) {
+	if !j.Validate(data) {
+		return
+	}
+	items := make([]string, 0, len(data))
+	for _, item := range data {
+		items = append(items, fmt.Sprintf("%q", item))
+	}
+	fmt.Println("JSON: [" + strings.Join(items, ", ") + "]")
+}
+
+func main() {
+	var csv DataExporter = &CSVExporter{}
+	csv.Export([]string{"Alice", "Bob", "Charlie"})
+
+	fmt.Println()
+
+	var json DataExporter = &JSONExporter{}
+	json.Export([]string{"Alice", "Bob", "Charlie"})
+
+	fmt.Println()
+
+	csv.Export([]string{}) // Should fail validation
+}
+```
+
+```csharp
+using System;
+using System.Collections.Generic;
+
+public abstract class DataExporter
+{
+    public bool Validate(List<string> data)
+    {
+        if (data == null || data.Count == 0)
+        {
+            Console.WriteLine("Export failed: No data to export.");
+            return false;
+        }
+        Console.WriteLine($"Validation passed. Exporting {data.Count} records.");
+        return true;
+    }
+
+    public abstract void Export(List<string> data);
+}
+
+public class CSVExporter : DataExporter
+{
+    public override void Export(List<string> data)
+    {
+        if (!Validate(data)) return;
+        Console.WriteLine("CSV: " + string.Join(",", data));
+    }
+}
+
+public class JSONExporter : DataExporter
+{
+    public override void Export(List<string> data)
+    {
+        if (!Validate(data)) return;
+        var items = new List<string>();
+        foreach (var item in data)
+        {
+            items.Add($"\"{item}\"");
+        }
+        Console.WriteLine("JSON: [" + string.Join(", ", items) + "]");
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        DataExporter csv = new CSVExporter();
+        csv.Export(new List<string> { "Alice", "Bob", "Charlie" });
+
+        Console.WriteLine();
+
+        DataExporter json = new JSONExporter();
+        json.Export(new List<string> { "Alice", "Bob", "Charlie" });
+
+        Console.WriteLine();
+
+        csv.Export(new List<string>()); // Should fail validation
+    }
+}
+```
+
+```typescript
+abstract class DataExporter {
+    validate(data: string[]): boolean {
+        if (!data || data.length === 0) {
+            console.log("Export failed: No data to export.");
+            return false;
+        }
+        console.log(`Validation passed. Exporting ${data.length} records.`);
+        return true;
+    }
+
+    abstract export(data: string[]): void;
+}
+
+class CSVExporter extends DataExporter {
+    export(data: string[]): void {
+        if (!this.validate(data)) return;
+        console.log("CSV: " + data.join(","));
+    }
+}
+
+class JSONExporter extends DataExporter {
+    export(data: string[]): void {
+        if (!this.validate(data)) return;
+        const items = data.map(item => `"${item}"`).join(", ");
+        console.log(`JSON: [${items}]`);
+    }
+}
+
+const csv = new CSVExporter();
+csv.export(["Alice", "Bob", "Charlie"]);
+
+console.log();
+
+const json = new JSONExporter();
+json.export(["Alice", "Bob", "Charlie"]);
+
+console.log();
+
+csv.export([]); // Should fail validation
+```
+
+
+</section>
