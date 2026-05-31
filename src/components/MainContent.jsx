@@ -1,6 +1,6 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import { VALID_ARTICLE_IDS } from '../config/navigation';
+import { useParams, Link } from 'react-router-dom';
+import { VALID_ARTICLE_IDS, getTrackByArticleId, getTrackArticles } from '../config/navigation';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useProgress } from '../context/ProgressContext';
 import './MainContent.css';
@@ -60,14 +60,14 @@ import JavaLangArraysBasics from '../content/articles/java-lang/arrays/java-lang
 import JavaLangArraysClass from '../content/articles/java-lang/arrays/java-lang-arrays-class.mdx';
 import JavaLangBreakContinue from '../content/articles/java-lang/control-flow/java-lang-break-continue.mdx';
 import JavaLangClassesAndObjects from '../content/articles/java-lang/object-oriented-programming/java-lang-classes-and-objects.mdx';
-import JavaLangCodingStandards from '../content/articles/java-lang/best-practices/java-lang-coding-standards.mdx';
-import JavaLangCollectionsOverview from '../content/articles/java-lang/collections-framework/java-lang-collections-overview.mdx';
+import JavaLangCodingStandards from '../content/articles/java-lang/core-concepts/java-lang-coding-standards.mdx';
+import JavaLangCollectionsOverview from '../content/articles/java-lang/core-concepts/java-lang-collections-overview.mdx';
 import JavaLangComments from '../content/articles/java-lang/basic-syntax/java-lang-comments.mdx';
 import JavaLangCompileTimePolymorphism from '../content/articles/java-lang/polymorphism/java-lang-compile-time-polymorphism.mdx';
 import JavaLangConstructorChaining from '../content/articles/java-lang/inheritance/java-lang-constructor-chaining.mdx';
 import JavaLangConstructors from '../content/articles/java-lang/object-oriented-programming/java-lang-constructors.mdx';
 import JavaLangCopyingArrays from '../content/articles/java-lang/arrays/java-lang-copying-arrays.mdx';
-import JavaLangCourseSetup from '../content/articles/java-lang/welcome/java-lang-course-setup.mdx';
+import JavaLangCourseSetup from '../content/articles/java-lang/core-concepts/java-lang-course-setup.mdx';
 import JavaLangCovariantReturnTypes from '../content/articles/java-lang/polymorphism/java-lang-covariant-return-types.mdx';
 import JavaLangDataHiding from '../content/articles/java-lang/encapsulation/java-lang-data-hiding.mdx';
 import JavaLangDateTimeOverview from '../content/articles/java-lang/date-time-api/java-lang-date-time-overview.mdx';
@@ -76,7 +76,7 @@ import JavaLangDoWhileLoop from '../content/articles/java-lang/control-flow/java
 import JavaLangDynamicMethodDispatch from '../content/articles/java-lang/polymorphism/java-lang-dynamic-method-dispatch.mdx';
 import JavaLangEncapsulationBasics from '../content/articles/java-lang/encapsulation/java-lang-encapsulation-basics.mdx';
 import JavaLangEnhancedForLoop from '../content/articles/java-lang/control-flow/java-lang-enhanced-for-loop.mdx';
-import JavaLangExceptionBasics from '../content/articles/java-lang/exception-handling/java-lang-exception-basics.mdx';
+import JavaLangExceptionBasics from '../content/articles/java-lang/core-concepts/java-lang-exception-basics.mdx';
 import JavaLangExtendsKeyword from '../content/articles/java-lang/inheritance/java-lang-extends-keyword.mdx';
 import JavaLangFileClass from '../content/articles/java-lang/file-i-o/java-lang-file-class.mdx';
 import JavaLangFinalKeyword from '../content/articles/java-lang/object-oriented-programming/java-lang-final-keyword.mdx';
@@ -100,7 +100,7 @@ import JavaLangJavaFeatures from '../content/articles/java-lang/introduction-to-
 import JavaLangJavaModules from '../content/articles/java-lang/packages-modules/java-lang-java-modules.mdx';
 import JavaLangJdbcBasics from '../content/articles/java-lang/jdbc/java-lang-jdbc-basics.mdx';
 import JavaLangJdkJreJvm from '../content/articles/java-lang/introduction-to-java/java-lang-jdk-jre-jvm.mdx';
-import JavaLangJoinCommunity from '../content/articles/java-lang/welcome/java-lang-join-community.mdx';
+import JavaLangJoinCommunity from '../content/articles/java-lang/core-concepts/java-lang-join-community.mdx';
 import JavaLangLabeledStatements from '../content/articles/java-lang/control-flow/java-lang-labeled-statements.mdx';
 import JavaLangLambdaExpressions from '../content/articles/java-lang/lambda-streams/java-lang-lambda-expressions.mdx';
 import JavaLangMarkerInterfaces from '../content/articles/java-lang/abstraction/java-lang-marker-interfaces.mdx';
@@ -123,7 +123,7 @@ import JavaLangPrivateInterfaceMethods from '../content/articles/java-lang/abstr
 import JavaLangRecordClasses from '../content/articles/java-lang/object-oriented-programming/java-lang-record-classes.mdx';
 import JavaLangRecursion from '../content/articles/java-lang/methods/java-lang-recursion.mdx';
 import JavaLangReferenceTypes from '../content/articles/java-lang/basic-syntax/java-lang-reference-types.mdx';
-import JavaLangReflectionBasics from '../content/articles/java-lang/reflection/java-lang-reflection-basics.mdx';
+import JavaLangReflectionBasics from '../content/articles/java-lang/core-concepts/java-lang-reflection-basics.mdx';
 import JavaLangRegularExpressions from '../content/articles/java-lang/strings/java-lang-regular-expressions.mdx';
 import JavaLangReturnTypes from '../content/articles/java-lang/methods/java-lang-return-types.mdx';
 import JavaLangRuntimePolymorphism from '../content/articles/java-lang/polymorphism/java-lang-runtime-polymorphism.mdx';
@@ -182,7 +182,6 @@ import LldCommand from '../content/articles/lld/design-patterns/lld-command.mdx'
 import LldComposite from '../content/articles/lld/design-patterns/lld-composite.mdx';
 import LldComposition from '../content/articles/lld/class-relationships/lld-composition.mdx';
 import LldCompositionExercise from '../content/articles/lld/class-relationships/lld-composition-exercise.mdx';
-import LldCourseIntroduction from '../content/articles/lld/welcome/lld-course-introduction.mdx';
 import LldDecorator from '../content/articles/lld/design-patterns/lld-decorator.mdx';
 import LldDependency from '../content/articles/lld/class-relationships/lld-dependency.mdx';
 import LldDependencyExercise from '../content/articles/lld/class-relationships/lld-dependency-exercise.mdx';
@@ -210,7 +209,6 @@ import LldInterfacesExercise from '../content/articles/lld/oop-fundamentals/lld-
 import LldIsp from '../content/articles/lld/solid-principles/lld-isp.mdx';
 import LldIspExercise from '../content/articles/lld/solid-principles/lld-isp-exercise.mdx';
 import LldIterator from '../content/articles/lld/design-patterns/lld-iterator.mdx';
-import LldJoinCommunity from '../content/articles/lld/welcome/lld-join-community.mdx';
 import LldKiss from '../content/articles/lld/design-principles/lld-kiss.mdx';
 import LldKissExercise from '../content/articles/lld/design-principles/lld-kiss-exercise.mdx';
 import LldLldInterviewTypes from '../content/articles/lld/lld-introduction/lld-lld-interview-types.mdx';
@@ -476,7 +474,6 @@ export default function MainContent() {
     if (articleId === 'lld-composite') return <LldComposite />;
     if (articleId === 'lld-composition') return <LldComposition />;
     if (articleId === 'lld-composition-exercise') return <LldCompositionExercise />;
-    if (articleId === 'lld-course-introduction') return <LldCourseIntroduction />;
     if (articleId === 'lld-decorator') return <LldDecorator />;
     if (articleId === 'lld-dependency') return <LldDependency />;
     if (articleId === 'lld-dependency-exercise') return <LldDependencyExercise />;
@@ -504,7 +501,6 @@ export default function MainContent() {
     if (articleId === 'lld-isp') return <LldIsp />;
     if (articleId === 'lld-isp-exercise') return <LldIspExercise />;
     if (articleId === 'lld-iterator') return <LldIterator />;
-    if (articleId === 'lld-join-community') return <LldJoinCommunity />;
     if (articleId === 'lld-kiss') return <LldKiss />;
     if (articleId === 'lld-kiss-exercise') return <LldKissExercise />;
     if (articleId === 'lld-lld-interview-types') return <LldLldInterviewTypes />;
@@ -596,6 +592,12 @@ export default function MainContent() {
   const activeArticleId = articleId || 'networking';
   const isCompleted = completedArticles.includes(activeArticleId);
 
+  const trackId = getTrackByArticleId(activeArticleId);
+  const trackArticles = getTrackArticles(trackId);
+  const currentIndex = trackArticles.findIndex(item => item.id === activeArticleId);
+  const prevArticle = currentIndex > 0 ? trackArticles[currentIndex - 1] : null;
+  const nextArticle = currentIndex >= 0 && currentIndex < trackArticles.length - 1 ? trackArticles[currentIndex + 1] : null;
+
   const components = {
     pre: (props) => {
       try {
@@ -616,22 +618,42 @@ export default function MainContent() {
         {React.cloneElement(renderArticle(), { components })}
       </article>
 
-      <div className="article-completion-footer">
-        <button 
-          className={`btn-completion ${isCompleted ? 'completed' : ''}`}
-          onClick={() => toggleCompleted(activeArticleId)}
-        >
-          {isCompleted ? (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              Topic Completed
-            </>
-          ) : (
-            'Mark Topic as Completed'
-          )}
-        </button>
+      <div className="article-nav-container">
+        <div className="article-nav-left">
+          {prevArticle ? (
+            <Link to={`/${prevArticle.id}`} className="article-nav-link prev">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              <span>{prevArticle.label}</span>
+            </Link>
+          ) : <div />}
+        </div>
+
+        <div className="article-nav-center">
+          <button 
+            className={`btn-completion ${isCompleted ? 'completed' : ''}`}
+            onClick={() => toggleCompleted(activeArticleId)}
+          >
+            {isCompleted ? (
+              <>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Completed
+              </>
+            ) : (
+              'Mark as Completed'
+            )}
+          </button>
+        </div>
+
+        <div className="article-nav-right">
+          {nextArticle ? (
+            <Link to={`/${nextArticle.id}`} className="article-nav-link next">
+              <span>{nextArticle.label}</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: '6px' }}><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </Link>
+          ) : <div />}
+        </div>
       </div>
     </main>
   );
