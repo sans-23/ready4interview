@@ -21,9 +21,11 @@ let isFirebaseEnabled = false;
 // Initialize Firebase only if we have a valid key (not placeholder)
 if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "placeholder-api-key") {
   try {
+    console.log("Initializing Firebase with Project ID:", firebaseConfig.projectId);
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
-    db = getFirestore(app);
+    const dbId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+    db = dbId ? getFirestore(app, dbId) : getFirestore(app);
     googleProvider = new GoogleAuthProvider();
     isFirebaseEnabled = true;
   } catch (error) {
